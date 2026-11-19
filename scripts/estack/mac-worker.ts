@@ -168,7 +168,8 @@ export interface PullState {
   state: string | null;
 }
 
-export type PullStage = "merged" | "closed" | "draft" | "open";
+export const PULL_STAGES = ["open", "draft", "merged", "closed"] as const;
+export type PullStage = (typeof PULL_STAGES)[number];
 
 export function pullStage(pr: PullState): PullStage {
   if (pr.merged) return "merged";
