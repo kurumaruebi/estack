@@ -1,4 +1,3 @@
-import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isJobId, parseResult } from "./coding-jobs";
@@ -41,7 +40,7 @@ export async function serve(
   }
   if (verb === "release") {
     if (!isReleaseTag(id)) throw new Error("A release needs a tag like v0.1.0.");
-    launch(stableReleaseCommand(process.env.ESTACK_STABLE_CHECKOUT ?? join(homedir(), "Projects", "estack"), id));
+    launch(stableReleaseCommand(repositoryRoot, id));
     return JSON.stringify({ deploying: "stable", tag: id });
   }
   if (verb === "decision" && id === undefined) {
