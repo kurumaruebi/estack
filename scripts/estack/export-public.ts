@@ -7,6 +7,7 @@ import { grepArguments, PRIVATE_PATHS, readPatterns } from "./check-personal";
 export const EXPORT_EXCLUDES: readonly string[] = [...PRIVATE_PATHS];
 export const ALLOWLIST_PATH = "estack/checks/public-export-allowlist.txt";
 export const COMMIT_MESSAGE = "estack を公開する";
+export const PUBLIC_REPOSITORY_URL = "https://github.com/kurumaruebi/estack.git";
 
 export interface Author {
   name: string;
@@ -189,7 +190,10 @@ function main(argv: readonly string[]): 0 | 1 | 2 {
   process.stdout.write(
     [
       `書き出しました: ${target}（${commit}、作者 ${author.name} <${author.email}>）`,
-      "push はしていません。次の手順は docs/estack-public-release.md の「最初の公開」の 3 から。",
+      "push はしていません。書き出した場所からだけ、この手順で push します（ほかのチェックアウトから打たない）:",
+      `  cd ${target}`,
+      `  git remote add origin ${PUBLIC_REPOSITORY_URL}`,
+      "  git push -u origin main",
       "",
     ].join("\n"),
   );
