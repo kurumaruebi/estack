@@ -32,6 +32,9 @@ bun scripts/estack/check-comments.ts --staged
 echo "Checking personal values..."
 bun scripts/estack/check-personal.ts --staged
 
+echo "Checking the size of the agent context files..."
+bun scripts/estack/check-agent-context.ts
+
 if [ -s "$work/fully-staged" ]; then
   tr '\n' '\0' <"$work/fully-staged" | xargs -0 git add --
 fi

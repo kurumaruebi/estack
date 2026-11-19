@@ -1,0 +1,17 @@
+{
+  "newFileMax": 4096,
+  "files": {
+    "AGENTS.md": 24024,
+    "apps/auth-api/AGENTS.md": 2307,
+    "apps/mobile/AGENTS.md": 9159,
+    "packages/contracts/AGENTS.md": 8025,
+    "packages/team-client/AGENTS.md": 1583,
+    "packages/ui/AGENTS.md": 1831,
+    "remote/api/AGENTS.md": 4039,
+    "src/backend/AGENTS.md": 10355,
+    "src/main/AGENTS.md": 8243,
+    "src/main/ipc/AGENTS.md": 5963,
+    "src/preload/AGENTS.md": 3101,
+    "src/renderer/AGENTS.md": 10615
+  }
+}

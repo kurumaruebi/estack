@@ -58,6 +58,9 @@ jobs:
           ESTACK_PERSONAL_HASHES: ${{ secrets.ESTACK_PERSONAL_HASHES }}
         run: bun scripts/estack/personal-hashes.ts --base ${{ steps.base.outputs.base }}
 
+      - name: Check the size of the agent context files
+        run: bun scripts/estack/check-agent-context.ts ${{ steps.base.outputs.base != 'none' && format('--base {0}', steps.base.outputs.base) || '' }}
+
       - name: Lint
         run: bunx biome check --max-diagnostics=none .
 
