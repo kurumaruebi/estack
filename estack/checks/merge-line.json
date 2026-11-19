@@ -1,5 +1,7 @@
 {
-  "autoMerge": [],
+  "autoMerge": ["docs", "tests"],
+  "maxChangedLines": 200,
+  "maxFiles": 5,
   "minMerges": 10,
   "maxRevertRate": 0.05,
   "windowDays": 30,

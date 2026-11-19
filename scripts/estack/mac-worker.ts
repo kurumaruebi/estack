@@ -13,6 +13,17 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
+import {
+  type AutomationLedger,
+  devAppEnvironment,
+  ledgerFile,
+  markHandled,
+  readLedger,
+  recordSideEffect,
+  sideEffectVerdict,
+  stopRequested,
+  writeLedger,
+} from "./automation-guard";
 import { addedLines, personalLines, readPatterns } from "./check-personal";
 import {
   automationArguments,
@@ -38,7 +49,7 @@ import {
 import { evidenceLines } from "./evidence";
 import { clickOutcome, fuzzTargets, pickTarget, seededRandom, targetKey, withoutBlocked } from "./fuzz-ui";
 import { type GithubApp, gitAuthArguments, githubApi, ignoreBody, installationToken } from "./github-app";
-import { mainCommits, mayAutoMerge, prCategory, readMergeLine, revertStats } from "./merge-line";
+import { autoMergeCategory, mainCommits, mayAutoMerge, type PrFile, readMergeLine, revertStats } from "./merge-line";
 
 export interface WorkerConfig {
   repo: string;
@@ -225,10 +236,12 @@ function whichCli(name: string): string {
 
 class Worker {
   readonly #sessionsPath: string;
+  readonly #ledgerPath: string;
 
   constructor(readonly config: WorkerConfig) {
     mkdirSync(join(config.workRoot, "jobs"), { recursive: true });
     this.#sessionsPath = join(config.workRoot, "sessions.json");
+    this.#ledgerPath = join(config.workRoot, ledgerFile(config.repo));
   }
 
   queue(command: string, input?: string): string {
@@ -463,12 +476,7 @@ class Worker {
     logName: string,
     work: (automation: (args: readonly string[]) => SpawnSyncReturns<string>) => string[],
   ): { lines: string[]; logPath: string; started: boolean } {
-    const environment = {
-      ...Object.fromEntries(Object.entries(process.env).filter(([name]) => name !== "ELECTRON_RUN_AS_NODE")),
-      ESTACK_DEV_SKIP_SEED: "1",
-      ESTACK_DEV_READY_TIMEOUT_MS: "300000",
-      ESTACK_BLOCK_EXTERNAL_OPEN: "1",
-    };
+    const environment = devAppEnvironment(process.env);
     const logPath = join(this.config.workRoot, `${logName}-dev.log`);
     const logFile = openSync(logPath, "w");
     const dev = Bun.spawn(["bun", "run", "dev"], { cwd: worktree, env: environment, stdout: logFile, stderr: logFile });
@@ -788,9 +796,28 @@ class Worker {
     });
   }
 
+  ledger(): AutomationLedger {
+    return readLedger(this.#ledgerPath);
+  }
+
+  async afterOwnMerge(result: JobResult, deployHere: boolean): Promise<void> {
+    if (!startsDeploy(result) || result.pr === null) return;
+    const now = new Date();
+    const ledger = this.ledger();
+    const verdict = sideEffectVerdict(ledger, result.pr.number, now, stopRequested(this.config.workRoot));
+    if (verdict !== "ok") {
+      this.decide("fuzz", `skipped deploy and fuzz after #${result.pr.number}`, verdict, result.pr.url, "skipped");
+      log(`skipped deploy and fuzz after #${result.pr.number}: ${verdict}`);
+      return;
+    }
+    writeLedger(this.#ledgerPath, recordSideEffect(ledger, result.pr.number, now));
+    if (deployHere) this.queue("deploy");
+    await this.fuzz(Date.now() % 100_000);
+  }
+
   async autoMergeSweep(): Promise<void> {
     const line = readMergeLine();
-    if (line.autoMerge.length === 0) return;
+    if (line.autoMerge.length === 0 || stopRequested(this.config.workRoot)) return;
     const stamp = join(this.config.workRoot, "auto-merge-sweep.stamp");
     if (existsSync(stamp) && Date.now() - statSync(stamp).mtimeMs < 10 * 60_000) return;
     writeFileSync(stamp, new Date().toISOString());
@@ -801,8 +828,14 @@ class Worker {
     const stats = revertStats(mainCommits(mirror), new Date(), line.windowDays, line.countSince);
     for (const [codeJobId, session] of candidates) {
       if (session.pr === null) continue;
+      if (this.ledger().handled.includes(session.pr)) {
+        this.forgetSession(codeJobId);
+        log(`forgot session ${codeJobId}: pull request #${session.pr} was handled before`);
+        continue;
+      }
       const stage = pullStage(await this.pullState(token, session.pr));
       if (sessionIsDone(stage)) {
+        writeLedger(this.#ledgerPath, markHandled(this.ledger(), session.pr));
         this.forgetSession(codeJobId);
         log(`forgot session ${codeJobId}: pull request #${session.pr} is ${stage}`);
         continue;
@@ -812,17 +845,22 @@ class Worker {
         token,
         "GET",
         `/repos/${this.config.repo}/pulls/${session.pr}/files?per_page=100`,
-        (value) => (Array.isArray(value) ? value.flatMap((file: unknown) => stringAt(file, "filename") ?? []) : []),
+        (value) => (Array.isArray(value) ? value.flatMap(prFileOf) : []),
       );
-      const category = prCategory(files);
+      const category = autoMergeCategory(files, line);
       if (!mayAutoMerge(line, category, stats)) continue;
+      const patches = files.map((file) => addedLines(file.patch)).join("\n");
+      if (this.personalIn([session.title ?? "", patches])) {
+        this.decide("merge", `auto skipped #${session.pr}`, "personal value in the change", "", "blocked");
+        continue;
+      }
       const result = await this.handleMerge({
         kind: "merge",
         id: `${codeJobId.slice(0, 50)}-auto`,
         createdAt: new Date().toISOString(),
         requestedBy: "merge-line",
         codeJobId,
-        pr: session.pr ?? 0,
+        pr: session.pr,
         approval: `merge line: ${category} (${stats.merges} merges, revert rate ${stats.rate})`,
       });
       this.decide(
@@ -832,10 +870,8 @@ class Worker {
         result.pr?.url ?? "",
         result.state,
       );
-      if (startsDeploy(result)) {
-        this.queue("deploy");
-        await this.fuzz(Date.now() % 100_000);
-      }
+      await this.afterOwnMerge(result, true);
+      if (startsDeploy(result)) return;
     }
   }
 
@@ -847,7 +883,10 @@ class Worker {
     const stage = pullStage(pr);
     const early = earlyMergeAnswer(stage);
     if (early) {
-      if (sessionIsDone(stage)) this.forgetSession(job.codeJobId);
+      if (sessionIsDone(stage)) {
+        writeLedger(this.#ledgerPath, markHandled(this.ledger(), job.pr));
+        this.forgetSession(job.codeJobId);
+      }
       return this.result(job, { ...early, pr: prRef });
     }
     if (pr.sha === null || pr.ref === null)
@@ -871,6 +910,7 @@ class Worker {
       sha: pr.sha,
     });
     await githubApi(token, "DELETE", `${repoPath}/git/refs/heads/${pr.ref}`, ignoreBody).catch(() => null);
+    writeLedger(this.#ledgerPath, markHandled(this.ledger(), job.pr));
     this.forgetSession(job.codeJobId);
     return this.result(job, {
       state: "merged",
@@ -887,6 +927,14 @@ function clickFailure(stderr: string): string {
     lines.filter((line) => line !== "" && !line.startsWith("error: script")).at(-1) ??
     ""
   ).slice(0, 300);
+}
+
+export function prFileOf(value: unknown): (PrFile & { patch: string })[] {
+  const filename = stringAt(value, "filename");
+  const additions = numberAt(value, "additions");
+  const deletions = numberAt(value, "deletions");
+  if (filename === null || additions === null || deletions === null) return [];
+  return [{ filename, additions, deletions, patch: stringAt(value, "patch") ?? "" }];
 }
 
 export function savedPlace(output: string): string | null {
@@ -946,7 +994,7 @@ async function once(): Promise<void> {
       result.state,
     );
     log(`finished ${job.id}: ${result.state}${result.pr ? ` ${result.pr.url}` : ""}`);
-    if (startsDeploy(result)) await worker.fuzz(Date.now() % 100_000);
+    await worker.afterOwnMerge(result, false);
   } finally {
     rmSync(lock, { force: true });
   }

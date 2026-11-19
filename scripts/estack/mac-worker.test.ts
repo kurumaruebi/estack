@@ -5,6 +5,7 @@ import {
   claudeModelArgs,
   claudeModelName,
   earlyMergeAnswer,
+  prFileOf,
   pullStage,
   savedPlace,
   sessionFor,
@@ -118,5 +119,15 @@ describe("sessions that the merge sweep looks at", () => {
     expect(sessionIsDone(pullStage({ merged: false, draft: false, state: "closed" }))).toBe(true);
     expect(sessionIsDone(pullStage({ merged: false, draft: true, state: "open" }))).toBe(false);
     expect(sessionIsDone(pullStage({ merged: false, draft: false, state: "open" }))).toBe(false);
+  });
+});
+
+describe("files of a pull request for the merge line", () => {
+  it("reads the name, the size and the patch, and drops a broken entry", () => {
+    expect(prFileOf({ filename: "docs/a.md", additions: 3, deletions: 1, patch: "+x" })).toEqual([
+      { filename: "docs/a.md", additions: 3, deletions: 1, patch: "+x" },
+    ]);
+    expect(prFileOf({ filename: "docs/a.md", additions: 3, deletions: 1 })[0]?.patch).toBe("");
+    expect(prFileOf({ filename: "docs/a.md" })).toEqual([]);
   });
 });

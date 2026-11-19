@@ -61,6 +61,9 @@ jobs:
       - name: Check the size of the agent context files
         run: bun scripts/estack/check-agent-context.ts ${{ steps.base.outputs.base != 'none' && format('--base {0}', steps.base.outputs.base) || '' }}
 
+      - name: Model check the merge loop
+        run: bun scripts/estack/check-model.ts
+
       - name: Lint
         run: bunx biome check --max-diagnostics=none .
 

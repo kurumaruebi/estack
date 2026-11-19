@@ -9,10 +9,53 @@ export type PrCategory = (typeof PR_CATEGORIES)[number];
 
 export interface MergeLine {
   autoMerge: PrCategory[];
+  maxChangedLines: number;
+  maxFiles: number;
   minMerges: number;
   maxRevertRate: number;
   windowDays: number;
   countSince: Date;
+}
+
+export interface PrFile {
+  filename: string;
+  additions: number;
+  deletions: number;
+}
+
+export const HARD_MAX_CHANGED_LINES = 300;
+export const HARD_MAX_FILES = 10;
+
+export const PROTECTED_PREFIXES: readonly string[] = [
+  ".agents/",
+  ".claude/",
+  ".github/",
+  ".githooks/",
+  "estack/agents/",
+  "estack/bin/",
+  "estack/checks/",
+  "estack/mac/",
+  "estack/models/",
+  "estack/scripts/",
+  "estack/vps/",
+  "estack/状態の図/",
+  "scripts/",
+];
+
+export const PROTECTED_FILES: readonly string[] = [
+  "estack/決まりと止める仕組み.md",
+  "estack/安定版と開発版.md",
+  "estack/計画.md",
+  "package.json",
+  "bun.lock",
+];
+
+export function isProtectedPath(path: string): boolean {
+  return (
+    PROTECTED_FILES.includes(path) ||
+    PROTECTED_PREFIXES.some((prefix) => path.startsWith(prefix)) ||
+    /(^|\/)(AGENTS|CLAUDE|GEMINI|SKILL)\.md$/u.test(path)
+  );
 }
 
 export interface MainCommit {
@@ -32,8 +75,14 @@ export function parseMergeLine(value: unknown): MergeLine {
   if (
     !isDynamicRecord(value) ||
     !Array.isArray(value.autoMerge) ||
+    !isNumber(value.maxChangedLines) ||
+    !isNumber(value.maxFiles) ||
+    value.maxChangedLines > HARD_MAX_CHANGED_LINES ||
+    value.maxFiles > HARD_MAX_FILES ||
     !isNumber(value.minMerges) ||
+    value.minMerges < 10 ||
     !isNumber(value.maxRevertRate) ||
+    value.maxRevertRate > 0.05 ||
     !isNumber(value.windowDays) ||
     !isString(value.countSince) ||
     Number.isNaN(Date.parse(value.countSince))
@@ -47,6 +96,8 @@ export function parseMergeLine(value: unknown): MergeLine {
   });
   return {
     autoMerge,
+    maxChangedLines: value.maxChangedLines,
+    maxFiles: value.maxFiles,
     minMerges: value.minMerges,
     maxRevertRate: value.maxRevertRate,
     windowDays: value.windowDays,
@@ -64,6 +115,16 @@ export function prCategory(paths: readonly string[]): PrCategory {
   if (paths.every((path) => path.endsWith(".md") && !path.startsWith(".agents/") && !path.startsWith(".github/")))
     return "docs";
   return "code";
+}
+
+export function autoMergeCategory(
+  files: readonly PrFile[],
+  line: Pick<MergeLine, "maxChangedLines" | "maxFiles">,
+): PrCategory {
+  const changed = files.reduce((sum, file) => sum + file.additions + file.deletions, 0);
+  if (files.length > line.maxFiles || changed > line.maxChangedLines) return "code";
+  if (files.some((file) => isProtectedPath(file.filename))) return "code";
+  return prCategory(files.map((file) => file.filename));
 }
 
 export function revertStats(
