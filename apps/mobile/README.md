@@ -260,6 +260,34 @@ recent apps show a blank card. The lock screen draws in `FullWindowOverlay` on i
 Android, above sheets. Notification, Live Activity, quick action and share navigation waits until
 the user unlocks. Expo Go does not have the module: it measures with the phone clock and cannot see a phone lock.
 
+## Two apps on your own iPhone
+
+The app has two variants that install side by side:
+
+| `APP_VARIANT` | Name | Bundle ID | Scheme | Build |
+| --- | --- | --- | --- | --- |
+| `production` (default) | estack | the base ID | `estack` | Release, the JavaScript is inside the app |
+| `development` | estack dev | the base ID + `.dev` | `estack-dev` | Debug dev client, loads JavaScript from a Metro server |
+
+The development app has its own icon (`assets/icons/app-icon-dev.icon`, the dev logo color) and its own App Group,
+widget, share and notification extension IDs, so the two apps share nothing on the phone.
+
+`bun run iphone production` and `bun run iphone development` build a variant and install it on the iPhone that is
+connected to this Mac. They sign with the free Personal Team of Xcode (`ESTACK_IOS_SIGNING=personal`), which
+cannot sign push notifications, associated domains, Communication Notifications or extensions with an App Group,
+so that build leaves out the widgets, the notification service and the share extension. Apple ends a Personal
+Team app 7 days after it was signed: build it again to keep it.
+
+Put your own values in `~/.config/estack/iphone.env`, never in the repository:
+
+```sh
+ESTACK_APPLE_TEAM_ID=<Personal Team ID from Xcode, Settings, Accounts>
+ESTACK_IOS_BUNDLE_ID=<a bundle ID of your own, such as com.yourname.estack>
+```
+
+Open the development app on a Metro server with `estack-dev://expo-development-client/?url=<the Metro URL, URL-encoded>`,
+or type the Metro URL in the dev client.
+
 ## iOS shortcuts
 
 The Shortcuts app of iOS 26 and later has two estack shortcuts: List Agents and Send Message. An
