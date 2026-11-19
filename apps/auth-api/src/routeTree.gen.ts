@@ -17,9 +17,6 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as AppPreviewRouteImport } from './routes/app-preview'
 import { Route as BrandingRouteImport } from './routes/branding'
 import { Route as ChangelogRouteImport } from './routes/changelog'
-import { Route as ClaRouteImport } from './routes/cla'
-import { Route as CommercialLicenseRouteImport } from './routes/commercial-license'
-import { Route as CommerciallicenseRouteImport } from './routes/commerciallicense'
 import { Route as DpaRouteImport } from './routes/dpa'
 import { Route as JoinRouteImport } from './routes/join'
 import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
@@ -256,21 +253,6 @@ const BrandingRoute = BrandingRouteImport.update({
 const ChangelogRoute = ChangelogRouteImport.update({
   id: '/changelog',
   path: '/changelog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ClaRoute = ClaRouteImport.update({
-  id: '/cla',
-  path: '/cla',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CommercialLicenseRoute = CommercialLicenseRouteImport.update({
-  id: '/commercial-license',
-  path: '/commercial-license',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CommerciallicenseRoute = CommerciallicenseRouteImport.update({
-  id: '/commerciallicense',
-  path: '/commerciallicense',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DpaRoute = DpaRouteImport.update({
@@ -1353,9 +1335,6 @@ export interface FileRoutesByFullPath {
   '/app-preview': typeof AppPreviewRoute
   '/branding': typeof BrandingRoute
   '/changelog': typeof ChangelogRoute
-  '/cla': typeof ClaRoute
-  '/commercial-license': typeof CommercialLicenseRoute
-  '/commerciallicense': typeof CommerciallicenseRoute
   '/dpa': typeof DpaRoute
   '/join': typeof JoinRoute
   '/llms.txt': typeof LlmsDottxtRoute
@@ -1563,9 +1542,6 @@ export interface FileRoutesByTo {
   '/app-preview': typeof AppPreviewRoute
   '/branding': typeof BrandingRoute
   '/changelog': typeof ChangelogRoute
-  '/cla': typeof ClaRoute
-  '/commercial-license': typeof CommercialLicenseRoute
-  '/commerciallicense': typeof CommerciallicenseRoute
   '/dpa': typeof DpaRoute
   '/join': typeof JoinRoute
   '/llms.txt': typeof LlmsDottxtRoute
@@ -1777,9 +1753,6 @@ export interface FileRoutesById {
   '/app-preview': typeof AppPreviewRoute
   '/branding': typeof BrandingRoute
   '/changelog': typeof ChangelogRoute
-  '/cla': typeof ClaRoute
-  '/commercial-license': typeof CommercialLicenseRoute
-  '/commerciallicense': typeof CommerciallicenseRoute
   '/dpa': typeof DpaRoute
   '/join': typeof JoinRoute
   '/llms.txt': typeof LlmsDottxtRoute
@@ -1990,9 +1963,6 @@ export interface FileRouteTypes {
     | '/app-preview'
     | '/branding'
     | '/changelog'
-    | '/cla'
-    | '/commercial-license'
-    | '/commerciallicense'
     | '/dpa'
     | '/join'
     | '/llms.txt'
@@ -2200,9 +2170,6 @@ export interface FileRouteTypes {
     | '/app-preview'
     | '/branding'
     | '/changelog'
-    | '/cla'
-    | '/commercial-license'
-    | '/commerciallicense'
     | '/dpa'
     | '/join'
     | '/llms.txt'
@@ -2413,9 +2380,6 @@ export interface FileRouteTypes {
     | '/app-preview'
     | '/branding'
     | '/changelog'
-    | '/cla'
-    | '/commercial-license'
-    | '/commerciallicense'
     | '/dpa'
     | '/join'
     | '/llms.txt'
@@ -2628,9 +2592,6 @@ export interface RootRouteChildren {
   AppPreviewRoute: typeof AppPreviewRoute
   BrandingRoute: typeof BrandingRoute
   ChangelogRoute: typeof ChangelogRoute
-  ClaRoute: typeof ClaRoute
-  CommercialLicenseRoute: typeof CommercialLicenseRoute
-  CommerciallicenseRoute: typeof CommerciallicenseRoute
   DpaRoute: typeof DpaRoute
   JoinRoute: typeof JoinRoute
   LlmsDottxtRoute: typeof LlmsDottxtRoute
@@ -2848,27 +2809,6 @@ declare module '@tanstack/solid-router' {
       path: '/changelog'
       fullPath: '/changelog'
       preLoaderRoute: typeof ChangelogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cla': {
-      id: '/cla'
-      path: '/cla'
-      fullPath: '/cla'
-      preLoaderRoute: typeof ClaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/commercial-license': {
-      id: '/commercial-license'
-      path: '/commercial-license'
-      fullPath: '/commercial-license'
-      preLoaderRoute: typeof CommercialLicenseRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/commerciallicense': {
-      id: '/commerciallicense'
-      path: '/commerciallicense'
-      fullPath: '/commerciallicense'
-      preLoaderRoute: typeof CommerciallicenseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dpa': {
@@ -4513,9 +4453,6 @@ const rootRouteChildren: RootRouteChildren = {
   AppPreviewRoute: AppPreviewRoute,
   BrandingRoute: BrandingRoute,
   ChangelogRoute: ChangelogRoute,
-  ClaRoute: ClaRoute,
-  CommercialLicenseRoute: CommercialLicenseRoute,
-  CommerciallicenseRoute: CommerciallicenseRoute,
   DpaRoute: DpaRoute,
   JoinRoute: JoinRoute,
   LlmsDottxtRoute: LlmsDottxtRoute,
