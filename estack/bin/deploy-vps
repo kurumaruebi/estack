@@ -31,15 +31,28 @@ if [ -r "$config" ]; then
   . "$config"
   set +a
 fi
+if [ -n "${ESTACK_CHECKOUT:-}" ]; then cd "$ESTACK_CHECKOUT"; fi
 proxy="${ESTACK_GITHUB_READ_PROXY:-http://127.0.0.1:3190}/git"
 logs="$HOME/.cache/estack"
 mkdir -p "$logs"
 exec >>"$logs/deploy.log" 2>&1
 echo "== $(date -u +%FT%TZ) deploy $channel $ref"
-if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
-  echo "The checkout has uncommitted changes. Not deploying."
-  exit 1
-fi
+
+only_matching_changes() {
+  git -c core.quotePath=false diff --name-only HEAD | while IFS= read -r path; do git diff --quiet "$1" -- "$path" || exit 1; done
+}
+
+set_aside_matching() {
+  target=$1
+  changed=$(git -c core.quotePath=false diff --name-only HEAD)
+  if [ -z "$changed" ]; then return 0; fi
+  if ! only_matching_changes "$target"; then
+    echo "The checkout has uncommitted changes. Not deploying."
+    return 1
+  fi
+  printf '%s\n' "$changed" | tr '\n' '\0' | xargs -0 git stash push -q -m "deploy $(date -u +%FT%TZ): already the same as $target" --
+  echo "Set aside changed files that already match $target (kept in git stash): $(printf '%s ' $changed)"
+}
 
 wait_for_agents() {
   for attempt in $(seq 1 80); do
@@ -74,6 +87,7 @@ back_up() {
 before=$(git rev-parse HEAD)
 if [ "$ref" = main ]; then
   git fetch -q "$proxy" main
+  set_aside_matching FETCH_HEAD || exit 1
   git merge -q --ff-only FETCH_HEAD
   after=$(git rev-parse HEAD)
   if [ "$before" = "$after" ]; then
@@ -98,8 +112,13 @@ else
     echo "Already at $ref ($after)."
     exit 0
   fi
+  if ! only_matching_changes "$after"; then
+    echo "The checkout has uncommitted changes. Not deploying."
+    exit 1
+  fi
   wait_for_agents
   estack/bin/estack-instance "$channel" stop
+  set_aside_matching "$after" || exit 1
   if ! back_up; then
     estack/bin/estack-instance "$channel" start
     exit 1
