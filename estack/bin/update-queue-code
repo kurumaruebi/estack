@@ -1,0 +1,26 @@
+#!/bin/sh
+set -eu
+umask 002
+cd "$(dirname "$0")/../.."
+export PATH="$HOME/.bun/bin:$PATH"
+proxy="${ESTACK_GITHUB_READ_PROXY:-http://127.0.0.1:3190}/git"
+logs="$HOME/.cache/estack"
+mkdir -p "$logs"
+exec >>"$logs/queue-code.log" 2>&1
+echo "== $(date -u +%FT%TZ) update queue code"
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+  echo "The queue checkout has uncommitted changes. Not updating."
+  exit 1
+fi
+before=$(git rev-parse HEAD)
+git fetch -q "$proxy" main
+git merge -q --ff-only FETCH_HEAD
+after=$(git rev-parse HEAD)
+if [ "$before" = "$after" ]; then
+  echo "Already at $after."
+  exit 0
+fi
+if ! git diff --quiet "$before" "$after" -- bun.lock package.json; then
+  bun install --frozen-lockfile --ignore-scripts
+fi
+echo "Updated $before -> $after"
