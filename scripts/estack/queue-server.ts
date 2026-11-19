@@ -1,9 +1,17 @@
-import { spawn } from "node:child_process";
+import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isJobId, parseResult } from "./coding-jobs";
 import { CodingQueue, queueRoot } from "./coding-queue";
 import { appendDecision, decisionsFile, parseDecision } from "./decisions";
+import {
+  type DeployCommand,
+  devDeployCommand,
+  isReleaseTag,
+  launchDetached,
+  queueCodeUpdateCommand,
+  stableReleaseCommand,
+} from "./deploy-route";
 import { evidenceRoot, isEvidenceKey, parseEvidence, saveEvidence } from "./evidence";
 
 const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -20,14 +28,21 @@ export async function serve(
   input: () => Promise<string>,
   decisions: string = decisionsFile(),
   evidence: string = evidenceRoot(),
+  launch: (deploy: DeployCommand) => void = launchDetached,
 ): Promise<string> {
   const [verb, id, extra] = command.trim().split(/\s+/u);
   if (extra !== undefined) throw new Error("Too many words in the command.");
   if (verb === "next" && id === undefined) return JSON.stringify(queue.claimNext());
   if (verb === "next-merge" && id === undefined) return JSON.stringify(queue.claimNext("merge"));
   if (verb === "deploy" && id === undefined) {
-    spawn(join(repositoryRoot, "estack", "bin", "deploy-vps"), [], { detached: true, stdio: "ignore" }).unref();
-    return JSON.stringify({ deploying: true });
+    launch(devDeployCommand(process.env));
+    launch(queueCodeUpdateCommand(repositoryRoot));
+    return JSON.stringify({ deploying: "dev" });
+  }
+  if (verb === "release") {
+    if (!isReleaseTag(id)) throw new Error("A release needs a tag like v0.1.0.");
+    launch(stableReleaseCommand(process.env.ESTACK_STABLE_CHECKOUT ?? join(homedir(), "Projects", "estack"), id));
+    return JSON.stringify({ deploying: "stable", tag: id });
   }
   if (verb === "decision" && id === undefined) {
     const row = parseDecision(JSON.parse(await input()));
@@ -47,7 +62,8 @@ export async function serve(
     if (!result || result.id !== id) throw new Error("The result is not valid for this job.");
     queue.complete(result);
     if (result.state === "merged") {
-      spawn(join(repositoryRoot, "estack", "bin", "deploy-vps"), [], { detached: true, stdio: "ignore" }).unref();
+      launch(devDeployCommand(process.env));
+      launch(queueCodeUpdateCommand(repositoryRoot));
     }
     return JSON.stringify({ saved: true });
   }

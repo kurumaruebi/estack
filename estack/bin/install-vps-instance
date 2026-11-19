@@ -96,6 +96,18 @@ install -d -o root -g root -m 755 "$units/estack@$channel.service.d" "$units/est
 instance_dropin >"$units/estack@$channel.service.d/instance.conf"
 metro_dropin >"$units/estack-metro@$channel.service.d/instance.conf"
 chmod 644 "$units/estack@$channel.service.d/instance.conf" "$units/estack-metro@$channel.service.d/instance.conf"
+chmod -R g+w "$checkout"
+find "$checkout" -type d -exec chmod g+s {} +
+if [ "$channel" = dev ] && [ -r "$instances/stable.env" ]; then
+  queue_user=$(sed -n 's/^ESTACK_INSTANCE_USER=//p' "$instances/stable.env" | tr -d "'\"")
+  sudoers="${ESTACK_SUDOERS_DIR:-/etc/sudoers.d}/estack-deploy-dev"
+  rule_file=$(mktemp)
+  printf '%s ALL=(%s) NOPASSWD: %s/estack/bin/deploy-vps dev\n' "$queue_user" "$user" "$checkout" >"$rule_file"
+  visudo -cf "$rule_file" >/dev/null
+  install -o root -g root -m 440 "$rule_file" "$sudoers"
+  rm -f "$rule_file"
+  echo "$queue_user の受け口が、$user として開発版の取り込みだけを動かせるようにしました（$sudoers）。"
+fi
 systemctl daemon-reload
 echo "estack@$channel と estack-metro@$channel を入れました（まだ有効にしていません）。"
 echo "持ち主の承認のあとで: sudo systemctl enable --now estack@$channel estack-metro@$channel"

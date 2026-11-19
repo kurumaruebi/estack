@@ -46,6 +46,7 @@ import {
   stringAt,
   summaryLine,
 } from "./coding-jobs";
+import { isReleaseTag } from "./deploy-route";
 import { evidenceLines } from "./evidence";
 import { clickOutcome, fuzzTargets, pickTarget, seededRandom, targetKey, withoutBlocked } from "./fuzz-ui";
 import { type GithubApp, gitAuthArguments, githubApi, ignoreBody, installationToken } from "./github-app";
@@ -1000,6 +1001,40 @@ async function once(): Promise<void> {
   }
 }
 
+export function releaseArguments(argv: readonly string[]): { tag: string; approval: string } | null {
+  const [tag, flag, approval] = argv;
+  if (!isReleaseTag(tag) || flag !== "--approved" || !approval?.trim()) return null;
+  return { tag, approval: approval.trim() };
+}
+
+async function release(argv: readonly string[]): Promise<void> {
+  const request = releaseArguments(argv);
+  if (!request) throw new Error("使い方: estack/bin/mac-worker release v0.x.y --approved <持ち主の承認の文>");
+  const worker = new Worker(readConfig());
+  const lock = join(worker.config.workRoot, "worker.lock");
+  if (!takeLock(lock)) throw new Error("The worker is busy. Try again when it is idle.");
+  try {
+    const token = await worker.token();
+    const repoPath = `/repos/${worker.config.repo}`;
+    const sha = await githubApi(token, "GET", `${repoPath}/git/ref/heads/main`, (value) =>
+      stringAt(value, "object", "sha"),
+    );
+    if (sha === null) throw new Error("GitHub returned no commit for main.");
+    await githubApi(token, "POST", `${repoPath}/git/refs`, ignoreBody, { ref: `refs/tags/${request.tag}`, sha });
+    worker.decide(
+      "release",
+      `tagged ${request.tag} at main@${sha.slice(0, 9)}`,
+      worker.personalIn([request.approval]) ? "recorded in the private decision log" : request.approval,
+      `https://github.com/${worker.config.repo}/tree/${request.tag}`,
+      "tagged",
+    );
+    worker.queue(`release ${request.tag}`);
+    log(`tagged ${request.tag} at main@${sha.slice(0, 9)} and asked the VPS to deploy it to stable`);
+  } finally {
+    rmSync(lock, { force: true });
+  }
+}
+
 async function verifyAgain(codeJobId: string): Promise<void> {
   const worker = new Worker(readConfig());
   const lock = join(worker.config.workRoot, "worker.lock");
@@ -1032,6 +1067,7 @@ async function verifyAgain(codeJobId: string): Promise<void> {
 if (import.meta.main) {
   const [command, jobId] = process.argv.slice(2);
   if (command === "verify" && jobId) await verifyAgain(jobId);
+  else if (command === "release") await release(process.argv.slice(3));
   else if (command === "fuzz") {
     const worker = new Worker(readConfig());
     const lock = join(worker.config.workRoot, "worker.lock");

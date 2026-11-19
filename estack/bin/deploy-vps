@@ -5,13 +5,12 @@ cd "$(dirname "$0")/../.."
 export PATH="$HOME/.bun/bin:$PATH"
 
 usage() {
-  echo "使い方: estack/bin/deploy-vps [dev | stable <v0.x.y>]（引数なしは今の 1 つの一式に main を取り込む）" >&2
+  echo "使い方: estack/bin/deploy-vps dev | stable <v0.x.y>（開発版は main、安定版は承認されたタグだけ）" >&2
   exit 2
 }
 
 if [ $# -eq 0 ]; then
-  channel=stable
-  ref=main
+  usage
 else
   channel=$1
   ref=${2:-}
