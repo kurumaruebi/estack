@@ -1,0 +1,24 @@
+#!/bin/sh
+set -eu
+channel=${1:-stable}
+case "$channel" in
+stable) user_name=ESTACK_VPS_STABLE_USER ;;
+dev) user_name=ESTACK_VPS_DEV_USER ;;
+*)
+  echo "使い方: estack/bin/phone-qr-mac [stable|dev]" >&2
+  exit 2
+  ;;
+esac
+settings="${ESTACK_VPS_SETTINGS:-$HOME/.config/estack/vps.env}"
+if [ -r "$settings" ]; then . "$settings"; fi
+host=${ESTACK_VPS_SSH:-}
+eval "user=\${$user_name:-}"
+if [ -z "$host" ] || [ -z "$user" ]; then
+  echo "$settings に ESTACK_VPS_SSH（ssh の名前）と ${user_name}（その版の Linux のユーザー）を書いてください。" >&2
+  exit 1
+fi
+local_dir=$(mktemp -d)
+ssh "$host" "sudo -n -u $user -H bash -lc 'cd ~/Projects/estack && PATH=\$HOME/.bun/bin:\$PATH bun estack/scripts/phone-qr.ts -'" >"$local_dir/phone-qr.png"
+open -a Preview "$local_dir/phone-qr.png"
+(sleep 150; rm -rf "$local_dir") >/dev/null 2>&1 &
+echo "$channel の QR を Preview で開きました。2 分で切れます。iPhone のアプリの「QR コードを読み取る」で読んでください。"

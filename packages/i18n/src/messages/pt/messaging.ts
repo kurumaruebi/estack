@@ -1,0 +1,21 @@
+import type { PartialTranslation } from "../../message";
+import type { messages as source } from "../en/messaging";
+
+export const messages = {
+  "messaging.help.invalid_token":
+    "O Slack não aceita mais o estack neste espaço de trabalho. Ele pode ter sido desinstalado. Conecte o espaço de trabalho novamente.",
+  "messaging.help.secret_storage_unavailable":
+    "O estack não consegue ler os tokens salvos neste computador. Desconecte o espaço de trabalho e conecte-o novamente.",
+  "messaging.help.relay_unavailable":
+    "O estack não consegue receber eventos do Slack neste computador. Entre na sua conta, dê um nome a este computador nas configurações do servidor e mantenha o estack aberto.",
+  "messaging.help.not_linked":
+    "Este workspace não está vinculado a este servidor. Selecione Reconectar para vinculá-lo.",
+  "messaging.discordHelp.invalid_token":
+    "O Discord não aceita mais o estack neste servidor do Discord. Ele pode ter sido removido. Conecte o servidor do Discord novamente.",
+  "messaging.discordHelp.secret_storage_unavailable":
+    "O estack não consegue ler os tokens salvos neste computador. Desconecte o servidor do Discord e conecte-o novamente.",
+  "messaging.discordHelp.relay_unavailable":
+    "O estack não consegue receber eventos do Discord neste computador. Entre na sua conta, dê um nome a este computador nas configurações do servidor e mantenha o estack aberto.",
+  "messaging.discordHelp.not_linked":
+    "Este servidor do Discord não está vinculado a este servidor do estack. Selecione Reconectar para vinculá-lo.",
+} as const satisfies PartialTranslation<typeof source>;

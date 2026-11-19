@@ -1,0 +1,10 @@
+# Pulls the image of instance %i, and for an install makes the container again. `setup` replaces
+# /opt/estack-docker/instances/ with the folder of estack-instance.
+[Unit]
+Description=Update estack instance %i
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/estack-docker/instances/estack-instance update-request %i
+TimeoutStartSec=45min

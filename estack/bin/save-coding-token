@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+coder="${ESTACK_CODING_USER:-estackcoder}"
+printf '%s の Claude Code の鍵（claude setup-token で出た文字列）を貼って Enter: ' "$coder"
+stty -echo
+IFS= read -r token
+stty echo
+printf '\n'
+case "$token" in
+  sk-ant-*) ;;
+  *) echo "Claude Code の鍵の形ではありません。" >&2; exit 2 ;;
+esac
+printf '%s\n' "$token" | sudo -n -u "$coder" -H /bin/sh -c 'umask 077 && mkdir -p ~/.config/estack && cat > ~/.config/estack/claude-token'
+echo "保存しました（$coder だけが読めます）。"

@@ -1,0 +1,30 @@
+{
+  "name": "@estack/bloub",
+  "private": true,
+  "version": "0.6.5",
+  "type": "module",
+  "description": "SVG recreation of the x.ai bot avatar. One shape morphing through 14 states, measured off the reference video frame by frame. Vendored from the MIT-licensed bloub package by Jérémy Perret, with the repository's frame-rate patch applied.",
+  "license": "MIT",
+  "author": "Jérémy Perret",
+  "homepage": "https://bloub-app.pages.dev",
+  "sideEffects": false,
+  "types": "./dist/package/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/package/types/index.d.ts",
+      "browser": "./dist/package/index.js",
+      "import": "./dist/package/server.js",
+      "default": "./dist/package/server.js"
+    },
+    "./plush": {
+      "types": "./dist/package/types/plush/index.d.ts",
+      "browser": "./dist/package/plush.js",
+      "import": "./dist/package/plush-server.js",
+      "default": "./dist/package/plush-server.js"
+    }
+  },
+  "peerDependencies": {
+    "@solidjs/web": "^2.0.0-rc.0",
+    "solid-js": "^2.0.0-rc.0"
+  }
+}

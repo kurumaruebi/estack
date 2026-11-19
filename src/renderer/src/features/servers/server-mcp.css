@@ -1,0 +1,135 @@
+/*
+ * The custom MCP server form and controls of the Marketplace. Both sit in the Marketplace page
+ * scroll, so this file only carries what the primitives do not: the row line that pairs a name with
+ * its status badge, the repeatable-row grids, and the actions at the end of the form.
+ */
+
+.server-mcp-section {
+  min-width: 0;
+}
+
+.server-mcp-error {
+  display: block;
+  margin-bottom: var(--estack-space-2);
+}
+
+/* The managed runtime a STDIO server is started with, while it is downloading or after it failed. */
+.server-mcp-runtime-note {
+  display: block;
+  margin-top: var(--estack-space-2);
+}
+
+/* A test result is one sentence under the Test section's own button, not a field. */
+.server-mcp-test-result {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+/*
+ * `.ui-button` leaves an icon at the lucide default of 24px, which towers over the label beside it.
+ * The buttons take the shared icon size and stroke, the way the other labelled icon buttons in the
+ * app do.
+ */
+.server-mcp-form .ui-button > svg,
+.server-mcp-controls .ui-button > svg {
+  width: var(--estack-icon-md);
+  height: var(--estack-icon-md);
+  flex: 0 0 auto;
+  stroke-width: var(--estack-icon-stroke);
+}
+
+.server-mcp-row-title {
+  display: flex;
+  align-items: center;
+  gap: var(--estack-space-2);
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.server-mcp-controls[data-disabled] .server-mcp-row-title,
+.server-mcp-controls[data-disabled] .server-mcp-row-text {
+  opacity: 0.55;
+}
+
+/* The one action a sentence asks for: Sign in after a challenge, Cancel during the wait. */
+.server-mcp-row-next {
+  display: flex;
+  align-items: center;
+  gap: var(--estack-space-2);
+  margin-top: var(--estack-space-1);
+}
+
+/* Form */
+
+.server-mcp-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--estack-space-6);
+  min-width: 0;
+}
+
+.server-mcp-transport-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--estack-space-6);
+  min-width: 0;
+}
+
+/* A fieldset so the legend names the group; the browser default frame is not wanted here. */
+.server-mcp-repeat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--estack-space-2);
+  min-width: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.server-mcp-repeat-legend {
+  padding: 0;
+}
+
+.server-mcp-repeat-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--estack-space-2);
+}
+
+.server-mcp-repeat-row-pair {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+}
+
+.server-mcp-repeat-add {
+  justify-content: center;
+  width: 100%;
+}
+
+/* The exact address an OAuth app must allow, with its copy button. */
+.server-mcp-callback {
+  display: flex;
+  align-items: center;
+  gap: var(--estack-space-2);
+  min-width: 0;
+}
+
+.server-mcp-callback-url {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--estack-font-mono);
+}
+
+/* The end of the form: why the last save failed, then Cancel and Save. */
+.server-mcp-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--estack-space-2);
+}
+
+.server-mcp-form-error {
+  margin-inline-end: auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

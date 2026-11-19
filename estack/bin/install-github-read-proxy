@@ -1,0 +1,24 @@
+#!/bin/sh
+set -eu
+cd "$(dirname "$0")/../.."
+settings="${ESTACK_VPS_SETTINGS:-$HOME/.config/estack/vps.env}"
+if [ -r "$settings" ]; then . "$settings"; fi
+host=${1:-${ESTACK_VPS_SSH:-}}
+if [ -z "$host" ]; then
+  echo "使い方: estack/bin/install-github-read-proxy <ssh の名前>（または $settings に ESTACK_VPS_SSH を書く）" >&2
+  exit 2
+fi
+bundle=$(mktemp -d)/github-read-proxy.js
+bun build scripts/estack/github-read-proxy.ts --target=bun --outfile "$bundle" >/dev/null
+scp -q "$bundle" "$host:/tmp/github-read-proxy.js"
+scp -q estack/vps/estack-github-read.service "$host:/tmp/estack-github-read.service"
+ssh "$host" 'set -e
+sudo install -d -o root -g root -m 755 /opt/estack-keys
+sudo install -o root -g root -m 644 /tmp/github-read-proxy.js /opt/estack-keys/github-read-proxy.js
+sudo install -o root -g root -m 644 /tmp/estack-github-read.service /etc/systemd/system/estack-github-read.service
+rm -f /tmp/github-read-proxy.js /tmp/estack-github-read.service
+test -x /usr/local/bin/bun || { echo "Install bun as /usr/local/bin/bun first." >&2; exit 1; }
+sudo test -f /etc/estack/github-read.json || { echo "Write /etc/estack/github-read.json first (repo, appId, installationId, privateKeyPath, port)." >&2; exit 1; }
+sudo systemctl daemon-reload
+sudo systemctl enable --now estack-github-read.service
+sudo systemctl restart estack-github-read.service'

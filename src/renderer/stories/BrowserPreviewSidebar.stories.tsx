@@ -1,0 +1,69 @@
+import { onSettled } from "solid-js";
+import { fn } from "storybook/test";
+import type { Meta, StoryObj } from "storybook-solidjs-vite";
+import BrowserPreviewSidebar from "../src/features/conversation/BrowserPreviewSidebar";
+import browserPreviewUrl from "./assets/browser-takeover-preview.svg";
+import { createMockEstack } from "./mock-estack";
+
+const tabs = [
+  {
+    id: "docs",
+    title: "estack documentation",
+    url: "https://estack.invalid/docs",
+    loading: false,
+    ownerThreadId: "chief",
+    ownerAgentId: "chief",
+  },
+  {
+    id: "settings",
+    title: "Workspace settings",
+    url: "https://example.com/settings",
+    loading: false,
+    ownerThreadId: "chief",
+    ownerAgentId: "chief",
+  },
+];
+
+const meta = {
+  title: "Conversation/BrowserPreviewSidebar",
+  component: BrowserPreviewSidebar,
+  args: {
+    tabs,
+    hidden: false,
+    suspended: false,
+    contextKey: "local:chief",
+    maxWidth: () => 640,
+    onWidthChange: fn(),
+    onOpenTab: fn(),
+    onCloseTab: fn(),
+    onNewTab: fn(),
+  },
+  decorators: [
+    (Story) => {
+      const previous = window.estack;
+      window.estack = createMockEstack({
+        browserPreviews: {
+          docs: { dataUrl: browserPreviewUrl, width: 960, height: 600 },
+          settings: null,
+        },
+      }).api;
+      onSettled(() => () => {
+        window.estack = previous;
+      });
+      return (
+        <div style="--browser-panel-width: 320px">
+          <Story />
+        </div>
+      );
+    },
+  ],
+  parameters: { layout: "fullscreen", a11y: { test: "error" } },
+} satisfies Meta<typeof BrowserPreviewSidebar>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const MultipleCards: Story = {};
+export const Loading: Story = { args: { suspended: true } };
+export const FailedCapture: Story = { args: { tabs: [tabs[1]] } };
+export const Empty: Story = { args: { tabs: [] } };

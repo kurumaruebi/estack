@@ -1,0 +1,68 @@
+name: estack CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: estack-ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Bun
+        uses: ./.github/actions/setup-bun
+        with:
+          install: ignore-scripts
+
+      - name: Choose the base of this change
+        id: base
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          case "$EVENT_NAME" in
+            pull_request) base="$PR_BASE" ;;
+            push) base="$PUSH_BEFORE" ;;
+            *) base="$(git rev-parse --verify HEAD~1 2>/dev/null || true)" ;;
+          esac
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then base="$(git rev-parse --verify HEAD~1 2>/dev/null || true)"; fi
+          if [ -n "$base" ]; then echo "base=$base" >> "$GITHUB_OUTPUT"; else echo "base=none" >> "$GITHUB_OUTPUT"; fi
+          case "$HEAD_REF" in upstream-sync/*) echo "upstream=true" >> "$GITHUB_OUTPUT" ;; *) echo "upstream=false" >> "$GITHUB_OUTPUT" ;; esac
+          if [ -n "$base" ]; then git update-ref refs/remotes/origin/main "$base"; fi
+
+      - name: Check new comments
+        if: steps.base.outputs.upstream != 'true' && steps.base.outputs.base != 'none'
+        run: bun scripts/estack/check-comments.ts --base ${{ steps.base.outputs.base }}
+
+      - name: Check personal values
+        if: steps.base.outputs.base != 'none'
+        env:
+          ESTACK_PERSONAL_HASHES: ${{ secrets.ESTACK_PERSONAL_HASHES }}
+        run: bun scripts/estack/personal-hashes.ts --base ${{ steps.base.outputs.base }}
+
+      - name: Lint
+        run: bunx biome check --max-diagnostics=none .
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Tests of the changed files
+        run: bun run test:changed

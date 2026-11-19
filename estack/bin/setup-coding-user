@@ -1,0 +1,38 @@
+#!/bin/sh
+set -eu
+if [ "$(id -u)" -ne 0 ]; then
+  echo "管理者として動かしてください: sudo estack/bin/setup-coding-user <いつものユーザー名>" >&2
+  exit 2
+fi
+owner="${1:?いつものユーザー名を渡してください}"
+coder="${ESTACK_CODING_USER:-estackcoder}"
+group="estack"
+work="/Users/$owner/estack-work"
+
+if ! dscl . -read "/Users/$coder" >/dev/null 2>&1; then
+  sysadminctl -addUser "$coder" -fullName "estack coder" -password -
+fi
+if ! dscl . -read "/Groups/$group" >/dev/null 2>&1; then
+  dseditgroup -o create "$group"
+fi
+dseditgroup -o edit -a "$owner" -t user "$group"
+dseditgroup -o edit -a "$coder" -t user "$group"
+
+mkdir -p "$work/jobs"
+chgrp -R "$group" "$work"
+chmod -R g+rwX "$work"
+find "$work" -type d -exec chmod g+s {} +
+chmod -R +a "group:$group allow list,add_file,search,add_subdirectory,delete_child,readattr,writeattr,readextattr,writeextattr,readsecurity,file_inherit,directory_inherit" "$work"
+chmod o+x "/Users/$owner"
+
+rule="/etc/sudoers.d/estack-coder"
+printf '%s ALL=(%s) NOPASSWD: ALL\n' "$owner" "$coder" >"$rule.tmp"
+visudo -cf "$rule.tmp" >/dev/null
+chmod 440 "$rule.tmp"
+mv "$rule.tmp" "$rule"
+
+sudo -u "$coder" -H git config --global --add safe.directory '*'
+sudo -u "$coder" -H git config --global user.name "$(sudo -u "$owner" -H git config --global user.name)"
+sudo -u "$coder" -H git config --global user.email "$(sudo -u "$owner" -H git config --global user.email)"
+echo "できました。次に、$coder で Claude Code にログインしてください: sudo -u $coder -i claude"
+echo "ログインできたら ~/.config/estack/worker.json に \"codingUser\": \"$coder\" を足します。"

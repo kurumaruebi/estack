@@ -1,0 +1,38 @@
+#!/bin/sh
+set -eu
+channel=${1:-stable}
+case "$channel" in
+stable | dev) ;;
+*)
+  echo "使い方: estack/bin/check-metro [stable|dev]" >&2
+  exit 2
+  ;;
+esac
+config="${ESTACK_INSTANCE_DIR:-/etc/estack/instances}/$channel.env"
+unit="estack-metro"
+if [ -r "$config" ]; then
+  set -a
+  . "$config"
+  set +a
+  unit="estack-metro@$channel"
+fi
+origin="${ESTACK_METRO_CHECK_URL:-http://$(tailscale ip -4 | head -n 1):${ESTACK_METRO_PORT:-8082}}"
+manifest=$(curl -fsS -m 60 -H "expo-platform: ios" -H "accept: application/expo+json,application/json" "$origin/")
+bundle=$(printf '%s' "$manifest" | python3 -I -c '
+import json, re, sys
+match = re.search(r"\{.*\}", sys.stdin.read(), re.S)
+data = json.loads(match.group(0)) if match else {}
+print((data.get("launchAsset") or {}).get("url") or "")
+')
+if [ -z "$bundle" ]; then
+  echo "Metro は manifest を返しましたが、JS の束の場所がありません。" >&2
+  exit 1
+fi
+result=$(curl -s -m 900 -o /dev/null -w "%{http_code} %{size_download}" "$bundle")
+code=${result% *}
+size=${result#* }
+if [ "$code" != "200" ] || [ "$size" -lt 1000000 ]; then
+  echo "Metro が JS の束を返しませんでした（HTTP ${code}、$size バイト）。journalctl -u $unit を見てください。" >&2
+  exit 1
+fi
+echo "Metro（${channel}）は manifest と JS の束（$size バイト）を返しました。"

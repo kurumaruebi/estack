@@ -1,0 +1,47 @@
+/* The side question pane, in the place of the other side panels. */
+.side-question-empty {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--estack-space-1-5);
+  padding: var(--estack-space-8) var(--estack-space-4);
+  text-align: center;
+}
+
+.side-question-empty > svg {
+  width: var(--estack-icon-lg);
+  height: var(--estack-icon-lg);
+  margin-bottom: var(--estack-space-1);
+  color: var(--estack-text-muted);
+  stroke-width: var(--estack-icon-stroke-lg);
+}
+
+.side-question-empty > strong {
+  color: var(--estack-text-secondary);
+  font-size: var(--estack-text-md);
+  font-weight: 500;
+}
+
+.side-question-empty > p {
+  max-width: 320px;
+  margin: 0;
+  color: var(--estack-text-muted);
+  font-size: var(--estack-text-sm);
+  line-height: var(--estack-leading-sm);
+}
+
+/* The chat composer's compact row, without its attach button: the editor and the send button. */
+.side-question-composer.composer[data-compact] {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.side-question-composer.composer[data-compact] > .composer-input-label {
+  grid-column: 1;
+}
+
+.side-question-composer.composer[data-compact] .composer-primary-actions {
+  grid-column: 2;
+}

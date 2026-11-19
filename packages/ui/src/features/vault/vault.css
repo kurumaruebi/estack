@@ -1,0 +1,290 @@
+/* The Vault page of the server settings. */
+
+.vault-panel {
+  display: grid;
+  gap: var(--estack-space-6);
+  min-width: 0;
+}
+
+.vault-truncate,
+.ui-item-content > .vault-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vault-icon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+}
+
+.vault-icon svg {
+  width: var(--estack-icon-md);
+  height: var(--estack-icon-md);
+}
+
+/* Item logos. A site gets a letter tile: no icon is fetched from it. */
+.vault-letter {
+  color: var(--estack-text-secondary);
+  font-size: var(--estack-text-md);
+  font-weight: var(--estack-weight-semibold);
+}
+
+/* Card brands sit on light paper, as their artwork expects. */
+.vault-card-logo {
+  display: inline-grid;
+  flex: none;
+  width: var(--integration-tile, 36px);
+  height: calc(var(--integration-tile, 36px) * 2 / 3);
+  place-items: center;
+  border: 1px solid var(--estack-paper-border);
+  border-radius: var(--estack-radius-xs);
+  background: var(--estack-paper);
+  color: var(--estack-paper-text);
+}
+
+.vault-card-logo > svg {
+  width: 70%;
+  height: 70%;
+}
+
+.vault-avatar {
+  display: inline-grid;
+  flex: none;
+  width: var(--integration-tile, 36px);
+  height: var(--integration-tile, 36px);
+  place-items: center;
+  border-radius: var(--estack-radius-pill);
+  background: var(--estack-accent-soft);
+  color: var(--estack-accent-hover);
+  font-size: var(--estack-text-sm);
+  font-weight: var(--estack-weight-semibold);
+}
+
+.vault-avatar > svg {
+  width: var(--estack-icon-md);
+  height: var(--estack-icon-md);
+}
+
+.vault-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--estack-space-3);
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--estack-space-1);
+}
+
+.vault-count {
+  margin-inline-start: var(--estack-space-1-5);
+  color: var(--estack-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.vault-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--estack-space-3) var(--estack-space-4);
+}
+
+.vault-wide {
+  grid-column: 1 / -1;
+}
+
+.vault-fill-sites {
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.vault-fill-sites > .ui-label {
+  margin-block-end: var(--estack-space-1-5);
+  padding: 0;
+}
+
+.vault-sites {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vault-site {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--estack-space-2);
+  min-width: 0;
+}
+
+.vault-secret {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.vault-secret .ui-input {
+  flex: 1;
+  padding-inline-end: var(--estack-space-8);
+}
+
+.vault-secret .ui-icon-button {
+  position: absolute;
+  inset-inline-end: var(--estack-space-1);
+}
+
+/* The search matches the tab bar beside it: same height, fill and text size, no border until focus. */
+.vault-toolbar .server-settings-search {
+  align-self: stretch;
+}
+
+.vault-toolbar .server-settings-search .ui-input {
+  height: 100%;
+  border-color: var(--estack-transparent);
+  font-size: var(--estack-text-md);
+}
+
+.vault-toolbar .server-settings-search .ui-input:focus-visible {
+  border-color: var(--estack-border-focus);
+}
+
+.vault-dialog.ui-confirm-dialog {
+  width: min(520px, 100%);
+}
+
+.vault-dialog-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.vault-dialog-header {
+  display: flex;
+  gap: var(--estack-space-3);
+  align-items: center;
+  padding-block: var(--estack-space-4) 0;
+  padding-inline: var(--estack-space-6) var(--estack-space-4);
+}
+
+.vault-dialog-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--estack-text-md);
+  font-weight: var(--estack-weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vault-dialog-body {
+  display: grid;
+  gap: var(--estack-space-3);
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--estack-space-4) var(--estack-space-6) var(--estack-space-6);
+}
+
+/* The Payment accounts group above the saved cards. */
+.vault-link-accounts {
+  display: grid;
+  gap: var(--estack-space-2);
+  margin-bottom: var(--estack-space-3);
+}
+
+.vault-group-label {
+  padding: 0 var(--estack-space-3);
+}
+
+.vault-link-logo > svg {
+  width: 92%;
+  height: 92%;
+}
+
+.ui-item-content > .vault-link-error {
+  color: var(--estack-danger-text);
+}
+
+/* The chat card that asks for a Vault item. The frame is a UiBlockCard (ui-blocks.css). */
+.vault-request {
+  max-width: 520px;
+}
+
+.vault-request-logo {
+  display: flex;
+  flex: none;
+}
+
+/* Two-step codes: the live code of a login and the setup steps of its key. */
+
+.vault-two-step-digits {
+  font-family: var(--estack-font-mono);
+  font-size: var(--estack-text-lg);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--estack-text-primary);
+}
+
+.vault-two-step-timer.ui-radial-progress {
+  width: var(--estack-icon-md);
+}
+
+.vault-two-step-code {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--estack-space-2);
+}
+
+.vault-two-step-code[data-size="lg"] {
+  gap: var(--estack-space-3);
+  justify-content: center;
+  padding: var(--estack-space-4) 0;
+}
+
+.vault-two-step-code[data-size="lg"] .vault-two-step-digits {
+  font-size: var(--estack-text-3xl);
+}
+
+.vault-two-step-code[data-size="lg"] .vault-two-step-timer.ui-radial-progress {
+  width: var(--estack-icon-lg, 20px);
+}
+
+/* The code in a list row sits above the row's hit area, as the ⋯ menu does. */
+.vault-two-step-row-code {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--estack-space-2);
+  height: auto;
+  border-radius: var(--estack-radius-sm);
+  padding: var(--estack-space-1) var(--estack-space-2);
+  color: inherit;
+}
+
+.vault-two-step-setup {
+  display: grid;
+  gap: var(--estack-space-3);
+}
+
+.vault-two-step-or {
+  display: flex;
+  align-items: center;
+  gap: var(--estack-space-3);
+  color: var(--estack-text-muted);
+  font-size: var(--estack-text-sm);
+}
+
+.vault-two-step-or::before,
+.vault-two-step-or::after {
+  flex: 1;
+  height: 1px;
+  background: var(--estack-border);
+  content: "";
+}
+
+.vault-two-step-check {
+  text-align: center;
+}

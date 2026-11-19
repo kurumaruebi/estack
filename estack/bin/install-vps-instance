@@ -1,0 +1,101 @@
+#!/bin/sh
+set -eu
+
+usage() {
+  echo "使い方: sudo estack/bin/install-vps-instance stable|dev [--print]" >&2
+  exit 2
+}
+
+channel=${1:-}
+case "$channel" in
+stable | dev) ;;
+*) usage ;;
+esac
+mode=${2:-install}
+case "$mode" in
+install | --print) ;;
+*) usage ;;
+esac
+instances="${ESTACK_INSTANCE_DIR:-/etc/estack/instances}"
+config="$instances/$channel.env"
+units="${ESTACK_SYSTEMD_DIR:-/etc/systemd/system}"
+if [ "$mode" = install ] && [ "$(id -u)" != 0 ]; then
+  echo "root で動かしてください（sudo）。" >&2
+  exit 1
+fi
+if [ ! -f "$config" ]; then
+  echo "$config がありません。estack/vps/instance.env.example を元に書いてください。" >&2
+  exit 1
+fi
+set -a
+. "$config"
+set +a
+for name in ESTACK_INSTANCE_USER ESTACK_CHECKOUT ESTACK_METRO_USER ESTACK_METRO_ENV_FILE ESTACK_API_PORT \
+  REMOTE_SIGNAL_PORT REMOTE_HEALTH_PORT ESTACK_DEV_RENDERER_PORT ESTACK_DEV_REMOTE_DEBUGGING_PORT ESTACK_METRO_PORT; do
+  eval "value=\${$name:-}"
+  if [ -z "$value" ]; then
+    echo "$config に $name がありません。" >&2
+    exit 1
+  fi
+done
+user=$ESTACK_INSTANCE_USER
+checkout=$ESTACK_CHECKOUT
+home=${ESTACK_INSTANCE_HOME:-$(getent passwd "$user" | cut -d: -f6)}
+group=${ESTACK_INSTANCE_GROUP:-$(id -gn "$user")}
+metro_home=${ESTACK_METRO_HOME:-$(getent passwd "$ESTACK_METRO_USER" | cut -d: -f6)}
+if [ -z "$home" ] || [ -z "$metro_home" ]; then
+  echo "ユーザー $user か $ESTACK_METRO_USER がありません。" >&2
+  exit 1
+fi
+if [ ! -x "$checkout/estack/bin/estack-instance" ]; then
+  echo "$checkout に estack のチェックアウトがありません。" >&2
+  exit 1
+fi
+if [ ! -f "$ESTACK_METRO_ENV_FILE" ]; then
+  echo "$ESTACK_METRO_ENV_FILE がありません。" >&2
+  exit 1
+fi
+
+instance_dropin() {
+  cat <<UNIT
+[Service]
+User=$user
+Group=$group
+WorkingDirectory=$checkout
+Environment=HOME=$home
+Environment=PATH=$home/.bun/bin:/usr/local/bin:/usr/bin:/bin
+UNIT
+}
+
+metro_dropin() {
+  cat <<UNIT
+[Service]
+User=$ESTACK_METRO_USER
+Group=$ESTACK_METRO_USER
+SupplementaryGroups=$group
+WorkingDirectory=$checkout/apps/mobile
+EnvironmentFile=$ESTACK_METRO_ENV_FILE
+Environment=HOME=$metro_home
+Environment=ESTACK_METRO_PORT=$ESTACK_METRO_PORT
+UNIT
+}
+
+if [ "$mode" = --print ]; then
+  echo "# $units/estack@$channel.service.d/instance.conf"
+  instance_dropin
+  echo "# $units/estack-metro@$channel.service.d/instance.conf"
+  metro_dropin
+  exit 0
+fi
+
+chown "root:$group" "$config"
+chmod 640 "$config"
+install -o root -g root -m 644 "$checkout/estack/vps/estack@.service" "$units/estack@.service"
+install -o root -g root -m 644 "$checkout/estack/vps/estack-metro@.service" "$units/estack-metro@.service"
+install -d -o root -g root -m 755 "$units/estack@$channel.service.d" "$units/estack-metro@$channel.service.d"
+instance_dropin >"$units/estack@$channel.service.d/instance.conf"
+metro_dropin >"$units/estack-metro@$channel.service.d/instance.conf"
+chmod 644 "$units/estack@$channel.service.d/instance.conf" "$units/estack-metro@$channel.service.d/instance.conf"
+systemctl daemon-reload
+echo "estack@$channel と estack-metro@$channel を入れました（まだ有効にしていません）。"
+echo "持ち主の承認のあとで: sudo systemctl enable --now estack@$channel estack-metro@$channel"

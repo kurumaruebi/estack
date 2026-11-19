@@ -1,0 +1,323 @@
+/* Settings > Transfer. Rows, messages and steps reuse the Storage page and the agent import
+   (features/files/files.css, features/import/agent-import.css), so the screens read as one set. */
+
+.instance-transfer {
+  display: flex;
+  max-width: 720px;
+  flex-direction: column;
+  gap: var(--estack-space-4);
+}
+
+.instance-transfer-start {
+  justify-content: flex-start;
+}
+
+.instance-transfer-upload {
+  display: flex;
+  flex-direction: column;
+  gap: var(--estack-space-1-5);
+  max-width: 320px;
+}
+
+.instance-transfer-upload-status {
+  margin: 0;
+  color: var(--estack-text-muted);
+  font-size: var(--estack-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.instance-transfer-back {
+  align-self: flex-start;
+  padding-inline: 0;
+}
+
+.instance-transfer-link {
+  align-self: flex-start;
+  padding-inline: 0;
+}
+
+.instance-transfer-chip {
+  padding: 0 var(--estack-space-1-5);
+  border: 1px solid var(--estack-border-grouped);
+  border-radius: var(--estack-radius-pill);
+  color: var(--estack-text-muted);
+  font-size: var(--estack-text-sm);
+  white-space: nowrap;
+}
+
+/* Old computer → file → new computer, as one line. */
+.instance-transfer-flow {
+  display: flex;
+  align-items: center;
+  gap: var(--estack-space-3);
+  margin: 0;
+  padding: var(--estack-space-3) var(--estack-space-4);
+  border: 1px solid var(--estack-border-grouped);
+  border-radius: var(--estack-radius-lg);
+  list-style: none;
+}
+
+.instance-transfer-flow-item {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--estack-space-1-5);
+  color: var(--estack-text-secondary);
+  font-size: var(--estack-text-sm);
+  text-align: center;
+}
+
+.instance-transfer-flow-icon {
+  width: var(--estack-icon-md);
+  height: var(--estack-icon-md);
+  color: var(--estack-text-primary);
+}
+
+.instance-transfer-flow-arrow {
+  width: var(--estack-icon-sm);
+  height: var(--estack-icon-sm);
+  flex: none;
+  color: var(--estack-text-muted);
+}
+
+/* Right to left, the arrow points the other way. */
+.instance-transfer-flow-arrow:dir(rtl),
+.instance-transfer-back > svg[class~="lucide-chevron-left"]:dir(rtl) {
+  transform: scaleX(-1);
+}
+
+.instance-transfer-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--estack-space-3);
+}
+
+.instance-transfer-tile {
+  display: flex;
+  height: auto;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--estack-space-1);
+  padding: var(--estack-space-4);
+  text-align: start;
+  white-space: normal;
+}
+
+.instance-transfer-tile-icon {
+  width: var(--estack-icon-md);
+  height: var(--estack-icon-md);
+  margin-bottom: var(--estack-space-2);
+}
+
+.instance-transfer-tile-title {
+  color: var(--estack-text-primary);
+  font-size: var(--estack-text-md);
+  font-weight: var(--estack-weight-medium);
+}
+
+.instance-transfer-tile-text {
+  color: var(--estack-text-muted);
+  font-size: var(--estack-text-sm);
+  font-weight: var(--estack-weight-regular);
+}
+
+/* What moves, as counts with icons. */
+.instance-transfer-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--estack-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.instance-transfer-summary-item {
+  display: flex;
+  align-items: center;
+  gap: var(--estack-space-2);
+  color: var(--estack-text-primary);
+  font-size: var(--estack-text-md);
+}
+
+.instance-transfer-summary-icon {
+  width: var(--estack-icon-sm);
+  height: var(--estack-icon-sm);
+  flex: none;
+  color: var(--estack-text-muted);
+}
+
+/* Export: the size of the workspace files in the file, and the two presets. */
+.instance-transfer-meter {
+  display: grid;
+  gap: var(--estack-space-2);
+}
+
+.instance-transfer-meter-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--estack-space-2);
+}
+
+.instance-transfer-meter-total {
+  color: var(--estack-text-primary);
+  font-size: var(--estack-text-xl);
+  font-weight: var(--estack-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.instance-transfer-meter-of {
+  margin: 0;
+  color: var(--estack-text-muted);
+  font-size: var(--estack-text-sm);
+}
+
+.instance-transfer-presets {
+  margin-inline-start: auto;
+}
+
+.instance-transfer-preset-custom {
+  display: none;
+}
+
+/* A custom choice: the pill fades out where it is, then moves. A preset after that: the pill is at
+   its place at once and fades in. */
+.instance-transfer-presets[data-pill="none"] .ui-sliding-tabs-pill {
+  opacity: 0;
+  transition:
+    opacity 120ms var(--estack-ease-out),
+    transform 0s 120ms,
+    width 0s 120ms;
+}
+
+.instance-transfer-presets[data-pill="appear"] .ui-sliding-tabs-pill {
+  transition: opacity 150ms var(--estack-ease-out);
+}
+
+.instance-transfer-not-moved {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--estack-space-2);
+  margin: 0;
+  color: var(--estack-text-muted);
+  font-size: var(--estack-text-sm);
+  line-height: 1.45;
+}
+
+.instance-transfer-not-moved-icon {
+  width: var(--estack-icon-xs);
+  height: var(--estack-icon-xs);
+  flex: none;
+  margin-top: 2px;
+}
+
+/* A third tile, "Copy to another server", shows when the user has another server. */
+.instance-transfer-tiles:has(> :nth-child(3)) {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* Server settings > Transfer > Copy to another server. */
+.ui-dialog-content.ui-confirm-dialog.copy-agents-dialog {
+  width: min(840px, 100%);
+}
+
+.copy-agents-main {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: var(--estack-space-4);
+  overflow-y: auto;
+  padding: var(--estack-space-6);
+}
+
+.copy-agents-panes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--estack-space-3);
+}
+
+.copy-agents-pane {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--estack-space-2);
+}
+
+.copy-agents-side-label {
+  color: var(--estack-text-secondary);
+  font-size: var(--estack-text-sm);
+  font-weight: var(--estack-weight-medium);
+}
+
+.copy-agents-arrow {
+  width: var(--estack-icon-sm);
+  height: var(--estack-icon-sm);
+  flex: none;
+  margin-top: 36px;
+  color: var(--estack-text-muted);
+}
+
+.copy-agents-arrow:dir(rtl) {
+  transform: scaleX(-1);
+}
+
+.copy-agents-trigger {
+  width: 100%;
+}
+
+.copy-agents-server {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--estack-space-2);
+}
+
+.copy-agents-server .server-settings-plush {
+  --server-plush-logo-size: 24px;
+}
+
+.copy-agents-server .server-settings-logo {
+  width: 24px;
+  height: 24px;
+}
+
+.copy-agents-server-name,
+.copy-agents-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.copy-agents-name {
+  flex: 1 1 auto;
+}
+
+.copy-agents-list {
+  height: 320px;
+  overflow-y: auto;
+}
+
+.copy-agents-status {
+  color: var(--estack-text-muted);
+}
+
+.copy-agents-done {
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .instance-transfer-tiles,
+  .instance-transfer-tiles:has(> :nth-child(3)),
+  .instance-transfer-summary,
+  .copy-agents-panes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .copy-agents-arrow {
+    margin: 0 auto;
+    transform: rotate(90deg);
+  }
+}

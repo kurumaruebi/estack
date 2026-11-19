@@ -1,0 +1,245 @@
+import type {
+  EstackDesktopApi,
+  InstanceTransferPreview,
+  InstanceTransferResult,
+  InstanceTransferSummary,
+} from "@estack/contracts/ipc";
+import { toast } from "@estack/ui";
+import type {
+  InstanceExportOptions,
+  InstanceExportPhase,
+  InstanceImportPhase,
+  InstanceTransferScreen,
+  TransferUploadState,
+} from "@estack/ui/features/transfer/InstanceTransferView";
+import { currentText } from "@estack/ui/text";
+import { createEffect, createStore, onCleanup } from "solid-js";
+import { desktopAnalytics } from "../../analytics";
+
+/**
+ * The transfer calls of one server. On the desktop, main routes them to this computer or to a joined
+ * host. In the browser client they go to the connected host, and a download has no folder to show.
+ */
+export type ServerTransferCalls = Omit<
+  EstackDesktopApi["instanceTransfer"],
+  "showExport" | "copy" | "onUploadProgress"
+> &
+  Partial<Pick<EstackDesktopApi["instanceTransfer"], "showExport" | "onUploadProgress">>;
+
+interface ServerTransferState {
+  screen: InstanceTransferScreen;
+  summary: InstanceTransferSummary | null;
+  exportPhase: InstanceExportPhase;
+  exportFileName: string | null;
+  exportWarnings: string[];
+  exportError: string | null;
+  importPhase: InstanceImportPhase;
+  /** The bytes of the chosen file that a joined server has, while `reading`. */
+  importProgress: TransferUploadState | null;
+  preview: InstanceTransferPreview | null;
+  result: InstanceTransferResult | null;
+  importError: string | null;
+}
+
+const INITIAL: ServerTransferState = {
+  screen: "home",
+  summary: null,
+  exportPhase: "options",
+  exportFileName: null,
+  exportWarnings: [],
+  exportError: null,
+  importPhase: "idle",
+  importProgress: null,
+  preview: null,
+  result: null,
+  importError: null,
+};
+
+/** The Transfer section's view of one export and one import of one server. */
+export function createServerTransferStore(serverId: string, calls: ServerTransferCalls) {
+  const [state, setState] = createStore<ServerTransferState>({ ...INITIAL });
+
+  // Only while this screen sends a file. The host keeps one upload for each member, so no other
+  // upload of this member to the same server runs at the same time.
+  const stopProgress = calls.onUploadProgress?.(({ serverId: target, sent, total }) => {
+    if (target !== serverId || state.importPhase !== "reading") return;
+    setState((draft) => {
+      draft.importProgress = { sent, total };
+    });
+  });
+  if (stopProgress) onCleanup(stopProgress);
+
+  // The agents are read again each time the export screen opens.
+  createEffect(
+    () => state.screen === "export" && state.exportPhase === "options",
+    (load) => {
+      if (!load) return;
+      void calls
+        .summary(serverId)
+        .then((summary) =>
+          setState((draft) => {
+            draft.summary = summary;
+          }),
+        )
+        .catch((error: unknown) =>
+          setState((draft) => {
+            draft.exportError = message(error, "settings.transfer.export.failed");
+          }),
+        );
+    },
+  );
+
+  function setScreen(screen: InstanceTransferScreen): void {
+    setState((draft) => {
+      draft.screen = screen;
+      draft.exportError = null;
+      draft.importError = null;
+    });
+  }
+
+  function exportFile(options: InstanceExportOptions): void {
+    setState((draft) => {
+      draft.exportPhase = "exporting";
+      draft.exportError = null;
+    });
+    void calls
+      .export(options, serverId)
+      .then((result) => {
+        // A closed save dialog saves nothing.
+        desktopAnalytics.track("server_transfer_action", {
+          action: "export",
+          result: result.saved ? "succeeded" : "cancelled",
+        });
+        setState((draft) => {
+          draft.exportPhase = result.saved ? "saved" : "options";
+          draft.exportFileName = result.fileName;
+          draft.exportWarnings = result.warnings;
+        });
+      })
+      .catch((error: unknown) => {
+        desktopAnalytics.track("server_transfer_action", {
+          action: "export",
+          result: "failed",
+          failure_code: "export_failed",
+        });
+        setState((draft) => {
+          draft.exportPhase = "options";
+          draft.exportError = message(error, "settings.transfer.export.failed");
+        });
+      });
+  }
+
+  // Absent when the calls have no folder to show.
+  const show = calls.showExport;
+  const showExport = show
+    ? (): void => {
+        void show().catch(report);
+      }
+    : undefined;
+
+  function exportAgain(): void {
+    setState((draft) => {
+      draft.exportPhase = "options";
+      draft.exportFileName = null;
+      draft.exportWarnings = [];
+    });
+  }
+
+  function choose(): void {
+    setState((draft) => {
+      draft.importPhase = "reading";
+      draft.importProgress = null;
+      draft.importError = null;
+    });
+    void calls
+      .choose(serverId)
+      .then((preview) =>
+        setState((draft) => {
+          // A closed dialog keeps the file that was open before.
+          if (preview) draft.preview = preview;
+          draft.importPhase = draft.preview ? "review" : "idle";
+          draft.importProgress = null;
+        }),
+      )
+      .catch((error: unknown) =>
+        setState((draft) => {
+          draft.importPhase = draft.preview ? "review" : "idle";
+          draft.importProgress = null;
+          draft.importError = message(error, "settings.transfer.import.openFailed");
+        }),
+      );
+  }
+
+  function importFile(keys: string[], includeSettings: boolean, includeServerPreferences = false): void {
+    const token = state.preview?.token;
+    if (!token) return;
+    setState((draft) => {
+      draft.importPhase = "importing";
+      draft.importError = null;
+    });
+    void calls
+      .apply(
+        { token, keys, includeSettings, ...(includeServerPreferences ? { includeServerPreferences } : {}) },
+        serverId,
+      )
+      .then((result) => {
+        desktopAnalytics.track("server_transfer_action", { action: "import", result: "succeeded" });
+        setState((draft) => {
+          draft.importPhase = "done";
+          draft.preview = null;
+          draft.result = result;
+        });
+      })
+      .catch((error: unknown) => {
+        desktopAnalytics.track("server_transfer_action", {
+          action: "import",
+          result: "failed",
+          failure_code: "import_failed",
+        });
+        setState((draft) => {
+          // The token is spent once main starts, so the file must be chosen again.
+          draft.importPhase = "idle";
+          draft.preview = null;
+          draft.importError = message(error, "settings.transfer.import.failed");
+        });
+      });
+  }
+
+  function cancelImport(): void {
+    const token = state.preview?.token;
+    if (token) void calls.discard(token, serverId).catch(report);
+    setState((draft) => {
+      draft.importPhase = "idle";
+      draft.preview = null;
+      draft.importError = null;
+    });
+  }
+
+  function importDone(): void {
+    setState((draft) => {
+      draft.importPhase = "idle";
+      draft.result = null;
+      draft.screen = "home";
+    });
+  }
+
+  return { state, setScreen, exportFile, showExport, exportAgain, choose, importFile, cancelImport, importDone };
+}
+
+function message(
+  error: unknown,
+  fallback:
+    | "settings.transfer.export.failed"
+    | "settings.transfer.import.openFailed"
+    | "settings.transfer.import.failed",
+): string {
+  const { t, errorMessage } = currentText();
+  return errorMessage(error, t(fallback));
+}
+
+function report(error: unknown): void {
+  const { t, errorMessage } = currentText();
+  toast.error(errorMessage(error, t("settings.transfer.import.failed")), {
+    report: { operation: "settings", source: "system", cause_code: "unknown" },
+  });
+}

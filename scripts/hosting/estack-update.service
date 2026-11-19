@@ -1,0 +1,16 @@
+# Downloads and unpacks a newer estack release next to the running one. estack-update.timer starts
+# it each hour, and `check` stages about each 6 hours; estack-update-apply.service moves the release
+# into place at the next start of the server. When estack stopped its start loop, `check` stages,
+# moves the release into place at once and starts estack.
+[Unit]
+Description=Stage an estack update
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/estack/hosted/estack-hosted-update check
+Nice=19
+IOSchedulingClass=idle
+CPUWeight=idle
+TimeoutStartSec=30min

@@ -1,0 +1,26 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "estack-site-router",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    {
+      "pattern": "*.estack.site/*",
+      "zone_name": "estack.site"
+    }
+  ],
+  "vars": {
+    // The account service origin. The report route `/_estack/report` and the links on error pages use it.
+    "ACCOUNT_ORIGIN": "https://estack.invalid"
+  },
+  "r2_buckets": [
+    {
+      "binding": "SITES",
+      "bucket_name": "estack-sites",
+      "preview_bucket_name": "estack-sites-test"
+    }
+  ]
+}

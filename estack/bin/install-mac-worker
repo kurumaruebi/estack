@@ -1,0 +1,9 @@
+#!/bin/sh
+set -eu
+repo=$(cd "$(dirname "$0")/../.." && pwd)
+target="$HOME/Library/LaunchAgents/com.estack.mac-worker.plist"
+mkdir -p "$HOME/estack-work" "$HOME/Library/LaunchAgents"
+sed -e "s#@REPO@#$repo#g" -e "s#@HOME@#$HOME#g" "$repo/estack/mac/com.estack.mac-worker.plist.template" >"$target"
+launchctl bootout "gui/$(id -u)/com.estack.mac-worker" 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" "$target"
+echo "Mac の作業係を launchd に入れました（1 分ごと。記録: $HOME/estack-work/worker.log）。止めるとき: launchctl bootout gui/$(id -u)/com.estack.mac-worker"

@@ -1,0 +1,246 @@
+/* The agent's offer to send feedback to the estack team, and the thank-you after Send. */
+.feedback-offer {
+  align-items: center;
+  gap: var(--estack-space-3);
+  text-align: center;
+}
+
+.feedback-offer-emoji {
+  font-size: var(--estack-text-display);
+  line-height: 1;
+  animation: feedback-offer-wiggle 900ms var(--estack-ease-out) 200ms both;
+}
+
+.feedback-offer-headline {
+  color: var(--estack-text-primary);
+  font-size: var(--estack-text-xl);
+  font-weight: var(--estack-weight-semibold);
+}
+
+.feedback-offer-quote {
+  display: grid;
+  width: 100%;
+  box-sizing: border-box;
+  gap: var(--estack-space-1);
+  margin: 0;
+  border-inline-start: 3px solid var(--estack-border);
+  color: var(--estack-text-secondary);
+  padding-inline-start: var(--estack-space-3);
+  text-align: start;
+}
+
+.feedback-offer-quote strong {
+  color: var(--estack-text-primary);
+  font-weight: var(--estack-weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.feedback-offer-quote p {
+  margin: 0;
+  font-size: var(--estack-text-lg);
+  line-height: var(--estack-leading-lg);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.feedback-offer-actions {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--estack-space-2);
+}
+
+.feedback-offer-actions > :last-child {
+  flex: 1;
+}
+
+.feedback-sent {
+  gap: var(--estack-space-3);
+}
+
+.feedback-sent > * {
+  animation: feedback-sent-in 320ms var(--estack-ease-out) 80ms both;
+}
+
+.feedback-sent-badge {
+  animation: feedback-sent-pop 420ms var(--estack-ease-out) 260ms both;
+}
+
+.feedback-sent-body {
+  margin: 0;
+  color: var(--estack-text-secondary);
+  font-size: var(--estack-text-lg);
+  line-height: var(--estack-leading-lg);
+}
+
+.feedback-sent-footer {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--estack-space-3);
+  border-top: 1px solid var(--estack-border);
+  padding-top: var(--estack-space-3);
+}
+
+.feedback-sent-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--estack-space-2);
+  margin-inline-start: auto;
+}
+
+.feedback-sent-actions > .feedback-sent-change {
+  color: var(--estack-text-muted);
+}
+
+.feedback-sent-actions > .feedback-sent-change:hover {
+  color: var(--estack-text-primary);
+}
+
+.feedback-sent-note {
+  margin: 0;
+  color: var(--estack-text-muted);
+  font-size: var(--estack-text-sm);
+}
+
+/* Fix or remove: two choices, then Remove asks in the card, because it cannot be undone. */
+.feedback-sent-panel {
+  display: grid;
+  min-width: 0;
+  gap: var(--estack-space-2);
+  border: 1px solid var(--estack-border);
+  border-radius: var(--estack-radius-lg);
+  background: var(--estack-bg-surface-raised);
+  padding: var(--estack-space-2);
+}
+
+.feedback-sent-panel > .feedback-sent-choice.ui-button {
+  display: grid;
+  width: 100%;
+  height: auto;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  justify-content: start;
+  gap: var(--estack-space-3);
+  padding: var(--estack-space-2) var(--estack-space-3);
+  text-align: start;
+  white-space: normal;
+}
+
+.feedback-sent-choice svg {
+  width: var(--estack-icon-md);
+  height: var(--estack-icon-md);
+  color: var(--estack-text-muted);
+}
+
+.feedback-sent-choice-text {
+  display: grid;
+  min-width: 0;
+  gap: var(--estack-space-1);
+}
+
+.feedback-sent-choice-title {
+  color: var(--estack-text-primary);
+  font-size: var(--estack-text-lg);
+  font-weight: var(--estack-weight-medium);
+}
+
+.feedback-sent-choice-hint {
+  color: var(--estack-text-muted);
+  font-size: var(--estack-text-sm);
+  font-weight: var(--estack-weight-regular);
+  line-height: var(--estack-leading-lg);
+}
+
+.feedback-sent-confirm {
+  display: grid;
+  gap: var(--estack-space-2);
+  padding: var(--estack-space-1);
+}
+
+.feedback-sent-confirm p {
+  margin: 0;
+  color: var(--estack-text-primary);
+  font-size: var(--estack-text-lg);
+  line-height: var(--estack-leading-lg);
+}
+
+.feedback-sent-confirm .feedback-sent-error {
+  color: var(--estack-danger-text);
+  font-size: var(--estack-text-sm);
+}
+
+.feedback-sent-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--estack-space-2);
+}
+
+.feedback-sent-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--estack-text-muted);
+  font-size: var(--estack-text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes feedback-offer-wiggle {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) rotate(0);
+  }
+
+  40% {
+    opacity: 1;
+    transform: scale(1.1) rotate(-10deg);
+  }
+
+  70% {
+    transform: rotate(8deg);
+  }
+
+  100% {
+    transform: rotate(0);
+  }
+}
+
+@keyframes feedback-sent-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+@keyframes feedback-sent-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+
+  60% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedback-offer-emoji,
+  .feedback-sent > *,
+  .feedback-sent-badge {
+    animation: none;
+  }
+}

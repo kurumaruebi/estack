@@ -1,0 +1,93 @@
+import type {
+  AddedAgent,
+  InstallMarketplaceAgentInput,
+  McpAccessSnapshot,
+  McpSignInRelayPage,
+  SetMcpAccessInput,
+} from "@estack/contracts/ipc";
+import { appPort } from "../../app-port";
+import { type AgentSkillCalls, agentSkillCalls, type SkillsPort, skillsPort } from "../../skills-port";
+
+/**
+ * What the marketplace calls. The desktop app reads the catalog and changes agents through main. The
+ * browser client reads the catalog on its own origin and changes its host over the Team API.
+ */
+export interface MarketplaceCalls {
+  skills: Pick<SkillsPort["skills"], "get" | "getBySlug" | "list">;
+  agents: Pick<SkillsPort["marketplaceAgents"], "get" | "getListing" | "list">;
+  agentSkills: (hostServerId?: string) => AgentSkillCalls;
+  mcp: Pick<
+    SkillsPort["agent"],
+    | "cancelMcpSignIn"
+    | "listMcpServers"
+    | "listMcpSignIns"
+    | "mcpSignInApp"
+    | "removeMcpServer"
+    | "removeMcpSignInApp"
+    | "saveMcpServer"
+    | "saveMcpSignInApp"
+    | "setMcpServerEnabled"
+    | "signInMcpServer"
+    | "signOutMcpServer"
+    | "testMcpServer"
+  >;
+  /** Who gets each MCP server (`mcp-access-v1`). Absent: this client cannot change it. */
+  mcpAccess?: MarketplaceMcpAccessCalls | undefined;
+  /** `serverId` absent: this computer, which is also the only place an installed agent is updated. */
+  addAgent: (input: InstallMarketplaceAgentInput, serverId: string | undefined) => Promise<AddedAgent>;
+  openUrl: (url: string) => Promise<void>;
+  /** A sign-in that a joined server relays to this computer's browser. Absent: this client cannot take one. */
+  signInRelay?: MarketplaceSignInRelay | undefined;
+  /** Asks macOS on this computer for Automation access to Apple apps. Absent: this client cannot. */
+  macAutomation?: SkillsPort["macAutomation"]["request"] | undefined;
+  /**
+   * The origin of a copied agent or skill link. Absent: `estack.invalid`, as for a plugin link. The
+   * browser client gives the local Worker's origin while a developer runs it.
+   */
+  shareOrigin?: string | undefined;
+}
+
+/** The MCP access of this computer (`serverId` absent) or of a joined server, and the roles it names. */
+interface MarketplaceMcpAccessCalls {
+  get: (serverId: string) => Promise<McpAccessSnapshot>;
+  set: (input: SetMcpAccessInput, serverId: string) => Promise<McpAccessSnapshot>;
+  roles: (serverId: string) => Promise<readonly { id: string; name: string }[]>;
+}
+
+/** The relayed sign-in of the app at `url` on the joined server `serverId`, while it waits. */
+export interface MarketplaceSignInRelay {
+  page: (url: string, serverId: string) => Promise<McpSignInRelayPage | null>;
+  open: (url: string, serverId: string) => Promise<void>;
+  paste: (url: string, address: string, serverId: string) => Promise<void>;
+  /**
+   * The host tab of a sign-in whose page only the joined server can reach, while it waits. The host
+   * opens it instead of the relay. Absent: this client cannot start such a sign-in.
+   */
+  hostTab?: ((url: string, serverId: string) => Promise<string | null>) | undefined;
+}
+
+/** Read on each call, as `skillsPort` is: tests and stories replace `window.estack` per case. */
+export function desktopMarketplaceCalls(): MarketplaceCalls {
+  const port = skillsPort();
+  return {
+    skills: port.skills,
+    agents: port.marketplaceAgents,
+    agentSkills: agentSkillCalls,
+    mcp: port.agent,
+    mcpAccess: {
+      get: (serverId) => port.agent.getMcpAccess(serverId),
+      set: (input, serverId) => port.agent.setMcpAccess(input, serverId),
+      roles: async (serverId) => (await port.hostAdmin.getAgentAccess(serverId)).roles ?? [],
+    },
+    addAgent: async (input, serverId) =>
+      serverId ? port.agent.addMarketplaceAgent(input, serverId) : (await port.marketplaceAgents.install(input)).agent,
+    openUrl: (url) => appPort().openUrl(url),
+    signInRelay: {
+      page: (url, serverId) => port.agent.mcpSignInRelay({ url }, serverId),
+      open: (url, serverId) => port.agent.openMcpSignInRelay({ url }, serverId),
+      paste: (url, address, serverId) => port.agent.completeMcpSignInRelay({ url, address }, serverId),
+      hostTab: (url, serverId) => port.agent.mcpSignInPage({ url }, serverId),
+    },
+    macAutomation: (targets) => port.macAutomation.request(targets),
+  };
+}

@@ -1,0 +1,46 @@
+import type { PartialTranslation } from "../../message";
+import type { messages as source } from "../en/startup";
+
+export const messages = {
+  "startup.failedTitle": "estack לא הצליח להיפתח",
+  "startup.failedBody":
+    "{message}\n\nהנתונים המקומיים שלך לא אופסו ולא נדרסו. בצעדי השחזור שבמדריך לפתרון בעיות אפשר לקרוא איך להמשיך.",
+  "startup.archiveChangedTitle": "קובצי estack שונו",
+  "startup.archiveChangedBody":
+    "תוכנה אחרת שינתה את קובץ estack app.asar. estack פועל כעת, אך לא ייפתח לאחר היציאה ממנו.\n\nכדי לתקן את estack, יש להתקין אותו מחדש. הנתונים המקומיים נשמרים.",
+  "startup.archiveChangedDownload": "הורדת estack",
+  "startup.filesDamagedBody":
+    "חלק מקובצי estack פגומים או חסרים.\n\nכדי לתקן את estack, יש להתקין אותו מחדש. הנתונים המקומיים נשמרים.",
+  "startup.newerDataUpdatingTitle": "estack מתעדכן",
+  "startup.newerDataUpdatingBody":
+    "גרסה חדשה יותר של estack שמרה את הנתונים שלך. estack מתקין את הגרסה האחרונה ואז נפתח מחדש.\n\nהנתונים המקומיים שלך לא אופסו ולא נדרסו.",
+  "startup.newerDataTitle": "התקנת estack העדכני ביותר",
+  "startup.newerDataBody":
+    "גרסה חדשה יותר של estack שמרה את הנתונים שלך, והגרסה הזו ({version}) אינה יכולה לפתוח אותם. יש להתקין את הגרסה האחרונה כדי לפתוח את הנתונים.\n\nהנתונים המקומיים שלך לא אופסו ולא נדרסו.",
+  "startup.newerDataDownload": "הורדת estack",
+  "startup.newerDataGuide": "פתיחת המדריך",
+  "startup.newerDataQuit": "יציאה",
+  "startup.newerDataLoopTitle": "הגרסה האחרונה של estack לא נפתחה",
+  "startup.newerDataLoopBody":
+    "גרסה חדשה יותר של estack שמרה את הנתונים שלך, והגרסה הזו ({version}) אינה יכולה לפתוח אותם. estack {loopVersion} נעצר לפני שנפתח כמה פעמים ברצף, ולכן הוא לא יותקן שוב.\n\nיש להתקין גרסה חדשה יותר מ-{loopVersion} כשתהיה זמינה. לקבלת עזרה, יש לפתוח את המדריך.\n\nהנתונים המקומיים שלך לא אופסו ולא נדרסו.",
+  "startup.newerDataReleases": "הצגת הגרסאות",
+  "startup.recoveryWindowTitle": "שחזור estack",
+  "startup.recoveryTitle": "estack לא נפתח",
+  "startup.recoveryBody": {
+    one: "estack {version} נעצר לפני שנפתח, פעם אחת ({count}). הנתונים המקומיים שלך לא אופסו ולא נדרסו.",
+    two: "estack {version} נעצר לפני שנפתח, פעמיים ברצף ({count}). הנתונים המקומיים שלך לא אופסו ולא נדרסו.",
+    other: "estack {version} נעצר לפני שנפתח, {count} פעמים ברצף. הנתונים המקומיים שלך לא אופסו ולא נדרסו.",
+  },
+  "startup.recoveryHint":
+    "נסה שוב, או התקן את הגרסה האחרונה שנפתחה. לקבלת עזרה, ייצא את נתוני האבחון ושלח את הקובץ עם הדיווח שלך.",
+  "startup.recoveryHintLatest":
+    "estack לא מצא גרסה קודמת שיכולה לפתוח את הנתונים שלך. נסה שוב, או התקן את הגרסה האחרונה. לקבלת עזרה, ייצא את נתוני האבחון ושלח את הקובץ עם הדיווח שלך.",
+  "startup.recoveryRetry": "נסה שוב",
+  "startup.recoveryPreviousVersion": "הורדת הגרסה הקודמת",
+  "startup.recoveryLatestVersion": "הורדת הגרסה האחרונה",
+  "startup.recoveryExportDiagnostics": "ייצוא אבחון",
+  "startup.recoveryOpenDataFolder": "פתיחת תיקיית הנתונים",
+  "startup.recoveryQuit": "יציאה",
+  "startup.recoveryDiagnosticsSaved": "קובץ האבחון נשמר.",
+  "startup.recoveryActionFailed": "estack לא הצליח לבצע את הפעולה הזו.",
+} as const satisfies PartialTranslation<typeof source>;

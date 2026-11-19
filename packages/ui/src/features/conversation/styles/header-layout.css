@@ -1,0 +1,134 @@
+.conversation-header {
+  display: flex;
+  height: 38px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 0;
+  padding-block: 0;
+  padding-inline: 8px 12px;
+  background: transparent;
+}
+
+/* The shape that joins the selected tab of a tab row to the card. The app shows it where the row sits on
+   the card. */
+.tab-shape {
+  display: none;
+}
+
+.conversation-heading-group {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+}
+
+.chat-search {
+  position: absolute;
+  z-index: 13;
+  top: 19px;
+  inset-inline-end: 16px;
+  display: flex;
+  width: min(308px, calc(100% - 32px));
+  height: 34px;
+  align-items: center;
+  border: 1px solid var(--estack-border-strong);
+  border-radius: var(--estack-radius-lg);
+  background: var(--estack-bg-control);
+  box-shadow: var(--estack-shadow-raised);
+  color: var(--estack-text-muted);
+}
+
+.chat-search-icon {
+  width: var(--estack-icon-md);
+  height: var(--estack-icon-md);
+  flex: 0 0 auto;
+  margin-inline-start: 11px;
+  stroke-width: var(--estack-icon-stroke);
+}
+
+.chat-search .chat-search-input {
+  min-width: 0;
+  height: var(--estack-control-md);
+  flex: 1;
+  border: 0;
+  background: transparent;
+  padding: 0 8px;
+  box-shadow: none;
+  color: var(--estack-text-primary);
+  font-size: var(--estack-text-lg);
+}
+
+.chat-search .chat-search-input:focus {
+  border: 0;
+  box-shadow: none;
+  outline: 0;
+}
+
+.chat-search-input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.chat-search-position {
+  min-width: 38px;
+  color: var(--estack-text-muted);
+  font-size: var(--estack-text-md);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.chat-search-separator {
+  width: 1px;
+  height: 20px;
+  flex: 0 0 auto;
+  background: var(--estack-border);
+}
+
+.chat-search .chat-search-button {
+  width: 26px;
+  height: var(--estack-control-md);
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: inherit;
+  padding: 0;
+}
+
+.chat-search-button svg {
+  width: var(--estack-icon-md);
+  height: var(--estack-icon-md);
+  stroke-width: var(--estack-icon-stroke);
+}
+
+.chat-search .chat-search-close {
+  margin-inline-end: 3px;
+}
+
+::highlight(estack-chat-search-results) {
+  background: var(--estack-accent-soft);
+}
+
+::highlight(estack-chat-search-current) {
+  background: var(--estack-warning);
+  color: var(--estack-paper-text);
+}
+
+.conversation-title[aria-label="View agent settings"]:hover {
+  color: var(--estack-text-primary);
+}
+
+.browser-panel {
+  position: absolute;
+  z-index: 14;
+  top: 0;
+  inset-inline-end: 0;
+  bottom: 0;
+  display: flex;
+  width: var(--browser-panel-width, 380px);
+  flex-direction: column;
+  border-inline-start: 1px solid var(--estack-border);
+  background: var(--estack-bg-canvas);
+  color: var(--estack-text-primary);
+  transition:
+    border-color var(--estack-duration-slow) ease,
+    box-shadow var(--estack-duration-slow) ease;
+}

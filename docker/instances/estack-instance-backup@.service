@@ -1,0 +1,10 @@
+# Backs up instance %i and verifies the backup. estack-instance-backup@%i.timer starts it. `setup`
+# replaces /opt/estack-docker/instances/ with the folder of estack-instance.
+[Unit]
+Description=Back up estack instance %i
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/estack-docker/instances/estack-instance backup %i --verify
+TimeoutStartSec=6h

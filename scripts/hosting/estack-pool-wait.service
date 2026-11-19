@@ -1,0 +1,20 @@
+# On a prepared machine of the pool that has no server. estack-pool-wait asks the account service for
+# the server of a new customer, starts estack for it, and disables this unit. `move-from-boat.sh offer`
+# installs and enables the unit; a machine with no token does not start it.
+[Unit]
+Description=estack pool machine waits for a server
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/etc/estack-pool/token
+
+[Service]
+Type=simple
+ExecStart=/usr/local/lib/estack-pool/estack-pool-wait
+RuntimeDirectory=estack-pool
+RuntimeDirectoryMode=0700
+# The script ends with 0 when a server starts or when the offer is over. Another end is an error.
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

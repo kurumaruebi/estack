@@ -1,0 +1,153 @@
+/*
+ * The light palette of the desktop app and the web client. tokens.css declares every
+ * token, dark; this file changes only the colors that must change, when the root element
+ * has data-estack-color-scheme="light". Each desktop window and the web client set that
+ * attribute from the saved choice, and resolve System from prefers-color-scheme. The public
+ * site never sets it, so it stays dark.
+ *
+ * The rules of the dark palette stay true here, turned over: a raised surface is lighter
+ * than the canvas, and a hover or a border is a translucent ink. In the dark palette that
+ * ink is white; here it is the primary text color, #141414.
+ *
+ * Not here, on purpose:
+ * - The native-only tokens (bg-native-canvas, chrome-*): mobile has its own light theme in
+ *   tokens-native.css. The desktop uses the native sidebar, sheet and grouped tokens, so they are here.
+ * - The landing-page materials (price-*, hero-grid, download-card-*): the public site is dark only.
+ * - The paper-* tokens: they stay on paper that is always light, such as a QR code.
+ * - Illustration and brand colors (logo-*, onboarding-*, sound-*, provider logos): a drawing
+ *   keeps its colors in both themes.
+ * - The Dynamic Island: it imitates the camera housing, so its window never sets the attribute.
+ */
+
+:root[data-estack-color-scheme="light"] {
+  color-scheme: light;
+
+  --estack-bg-canvas: #f5f5f6;
+  --estack-bg-canvas-clear: rgba(245, 245, 246, 0);
+  --estack-bg-frame: #e8e8eb;
+  --estack-bg-sidebar: #f5f5f6;
+  --estack-bg-native-sidebar: #f5f5f6;
+  --estack-bg-sheet: #ffffff;
+  --estack-bg-sheet-inset: #f0f0f2;
+  --estack-bg-grouped: #ffffff;
+  --estack-text-grouped-secondary: #6b6b70;
+  --estack-border-grouped: #e3e3e6;
+  --estack-marketplace-detail-bg: #ececee;
+  --estack-bg-surface: #ffffff;
+  --estack-bg-surface-raised: #fcfcfc;
+  --estack-bg-control: #ffffff;
+  --estack-bg-control-hover: #f0f0f2;
+  --estack-bg-control-active: #e8e8eb;
+  --estack-tabs-bar-bg: #ececee;
+  --estack-tabs-pill-bg: #ffffff;
+  --estack-bg-overlay: rgba(245, 245, 246, 0.92);
+  --estack-dialog-overlay: rgba(20, 20, 20, 0.12);
+  --estack-dialog-ring: rgba(20, 20, 20, 0.1);
+  --estack-bg-glass: rgba(255, 255, 255, 0.76);
+  --estack-glass-surface: rgba(20, 20, 20, 0.04);
+  --estack-glass-surface-hover: rgba(20, 20, 20, 0.07);
+  --estack-glass-border: rgba(20, 20, 20, 0.12);
+  --estack-glass-highlight: rgba(255, 255, 255, 0.6);
+  --estack-glass-shadow: transparent;
+  --estack-scroll-edge-overlay: rgba(245, 245, 246, 0.72);
+
+  --estack-border: rgba(20, 20, 20, 0.07);
+  --estack-border-strong: rgba(20, 20, 20, 0.1);
+  --estack-image-outline: rgba(20, 20, 20, 0.1);
+  --estack-hover: rgba(20, 20, 20, 0.05);
+
+  /* Contrast on the canvas: primary 17:1, secondary 10:1, muted 4.9:1. Dim is for
+     marks and disabled text, as in the dark palette. */
+  --estack-text-primary: #141414;
+  --estack-text-secondary: #3a3a3c;
+  --estack-text-muted: #6b6b70;
+  --estack-text-dim: #8e8e93;
+  --estack-text-placeholder: #5c5c61;
+  --estack-text-readable: rgba(20, 20, 20, 0.6);
+  --estack-settings-text-muted: rgba(20, 20, 20, 0.6);
+
+  /* The on-light family is the high-contrast inverted element: the default button, a checked
+     switch, the user's bubble, the light tooltip. On a light canvas it turns dark. */
+  --estack-surface-light: #1c1c1e;
+  --estack-text-on-light: #ffffff;
+  --estack-text-muted-on-light: rgba(255, 255, 255, 0.64);
+  --estack-text-dim-on-light: rgba(255, 255, 255, 0.4);
+  --estack-border-on-light: rgba(255, 255, 255, 0.16);
+
+  /* The same hue 210 as the dark accent. The fill keeps its value, so a button looks the same
+     in both themes; text and hover go darker for contrast (accent-text 5.3:1 on the canvas). */
+  --estack-accent-hover: #006ad4;
+  --estack-accent-text: #0064c8;
+  --estack-accent-soft: rgba(0, 124, 247, 0.12);
+  --estack-accent-strong: rgba(0, 124, 247, 0.26);
+
+  /* Chart series: darker steps of the dark-palette hues, so each series reads on white.
+     Not yet checked with the dataviz palette validator in light mode. */
+  --estack-chart-series-codex: #8e4fc0;
+  --estack-chart-series-grok: #16849b;
+  --estack-chart-storage-workspaces: #2f74c9;
+  --estack-chart-storage-files: #c64d1d;
+  --estack-chart-storage-chats: #148a61;
+  --estack-chart-storage-downloads: #6f62d6;
+  --estack-chart-storage-runtimes: #a86f00;
+
+  /* Status fills keep their hue. Status text is darker, for AA on white. */
+  --estack-success: #1fa85a;
+  --estack-success-text: #187a41;
+  --estack-success-soft: rgba(31, 168, 90, 0.12);
+  --estack-success-wash: rgba(31, 168, 90, 0.06);
+  --estack-warning: #f08a00;
+  --estack-warning-text: #9c5200;
+  --estack-warning-soft: rgba(240, 138, 0, 0.14);
+  --estack-approval-badge-soft: rgba(240, 138, 0, 0.18);
+  --estack-danger: #e8222d;
+  --estack-danger-hover: #f04a53;
+  --estack-danger-text: #c0141d;
+  --estack-danger-soft: rgba(232, 34, 45, 0.12);
+  --estack-danger-soft-hover: rgba(232, 34, 45, 0.2);
+  --estack-danger-focus: rgba(232, 34, 45, 0.36);
+  --estack-danger-border: rgba(232, 34, 45, 0.45);
+
+  --estack-question-option: #16849b;
+  --estack-question-option-soft: rgba(22, 132, 155, 0.12);
+  --estack-question-option-hover: rgba(22, 132, 155, 0.18);
+  --estack-question-option-pressed: rgba(22, 132, 155, 0.24);
+  --estack-question-badge-text: #0f6a7d;
+  --estack-question-badge-soft: rgba(22, 132, 155, 0.14);
+  --estack-message-badge-text: #0a5fb8;
+  --estack-message-badge-soft: rgba(0, 124, 247, 0.12);
+  --estack-badge-new: #e0004a;
+  --estack-badge-new-soft: rgba(224, 0, 74, 0.12);
+
+  /* File references: the hues of the dark palette, darker so the name reads on white. */
+  --estack-file-blue: #1a66c4;
+  --estack-file-blue-soft: rgba(31, 111, 209, 0.12);
+  --estack-file-yellow: #9c5200;
+  --estack-file-yellow-soft: rgba(240, 138, 0, 0.14);
+  --estack-file-orange: #a8521a;
+  --estack-file-orange-soft: rgba(181, 90, 31, 0.12);
+  --estack-file-teal: #127589;
+  --estack-file-teal-soft: rgba(22, 132, 155, 0.12);
+  --estack-file-green: #187a41;
+  --estack-file-green-soft: rgba(31, 168, 90, 0.12);
+  --estack-file-red: #c0141d;
+  --estack-file-red-soft: rgba(232, 34, 45, 0.12);
+  --estack-file-pink: #a3478f;
+  --estack-file-pink-soft: rgba(163, 71, 143, 0.12);
+  --estack-file-default: #0064c8;
+  --estack-file-default-soft: rgba(0, 124, 247, 0.12);
+
+  --estack-data-table-border: #e3e3e6;
+  --estack-data-table-header-text: #6b6b70;
+  --estack-data-table-text: #1c1c1e;
+  --estack-data-table-outer-border: rgba(20, 20, 20, 0);
+  --estack-data-table-ring: rgba(20, 20, 20, 0.1);
+
+  /* No drop shadows: on the dark canvas they do not show, but on white they read as a halo.
+     A raised surface keeps its 1px ring. */
+  --estack-shadow-popover-ambient: transparent;
+  --estack-shadow-dialog: transparent;
+  --estack-shadow-menu: transparent;
+  --estack-shadow-ring: rgba(20, 20, 20, 0.04);
+  --estack-shadow-overlay: 0 0 0 transparent;
+}

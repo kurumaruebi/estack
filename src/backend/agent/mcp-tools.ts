@@ -1,0 +1,587 @@
+import { INPUT_LIMITS } from "@estack/contracts/input-limits";
+import {
+  type AgentAccess,
+  MCP_TRANSPORTS,
+  type McpServerConfig,
+  type McpSignInState,
+  mcpConfigErrors,
+  normalizeMcpConfig,
+  workspaceAccessEnforced,
+} from "@estack/contracts/ipc";
+import { sourceText } from "@estack/i18n/source";
+import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types.js";
+import { Effect } from "effect";
+import { z } from "zod";
+import type { McpSignInOffer } from "../mcp-oauth-provider";
+import type { McpProbeOutcome, McpToolArguments, McpToolCallResult } from "../mcp-probe";
+import { providerMcpServerName } from "../mcp-provider-shapes";
+import type { DynamicToolResult } from "../protocol";
+import type { McpGateway, McpGatewayFailed } from "./mcp-gateway";
+import { profileToolErrorMessage } from "./profile-tools";
+import { type EstackToolResponse, estackToolFailure, estackToolResult } from "./routine-tools";
+import { ToolOperationFailed, toolStep } from "./tool-operation";
+
+/**
+ * The MCP tools: an agent adds, changes, tests, turns on or off, and removes the MCP servers of its
+ * estack server when the user asks. A server goes to the agents that the user selects for it, and
+ * a new one to every agent there, so each change waits for the user's approval as other tools do,
+ * and an agent with Full access is answered for.
+ *
+ * No value of a header or of the environment goes in or out: a key stays in the Marketplace form, where
+ * the user enters it. A sign-in is handed to the user with a card in the conversation.
+ */
+
+const serverName = z
+  .string()
+  .trim()
+  .min(1)
+  .max(INPUT_LIMITS.mcpServerName)
+  .describe("The server name, as list_mcp_servers shows it.");
+
+const saveMcpServerToolSchema = z.strictObject({
+  name: serverName.describe("The server name. A name in use changes that server; a new name adds one."),
+  transport: z
+    .enum(MCP_TRANSPORTS)
+    .optional()
+    .describe(
+      "http for an address, stdio for a local command. A new server without it uses stdio when command is set.",
+    ),
+  url: z.string().trim().max(INPUT_LIMITS.mcpUrl).optional().describe("The http or https address of an http server."),
+  command: z.string().trim().max(INPUT_LIMITS.mcpCommand).optional().describe("The command of a stdio server."),
+  args: z
+    .array(z.string().max(INPUT_LIMITS.mcpArgValue))
+    .max(INPUT_LIMITS.mcpArgs)
+    .optional()
+    .describe("The arguments of a stdio server. They replace the arguments it had."),
+  workingDirectory: z.string().max(INPUT_LIMITS.path).optional(),
+  enabled: z.boolean().optional().describe("A new server is on unless this is false."),
+});
+
+const namedServerSchema = z.strictObject({ name: serverName });
+const setEnabledSchema = z.strictObject({ name: serverName, enabled: z.boolean() });
+
+// The agents of each server are the user's choice (#10992): an agent that says they cannot be limited misleads the user.
+const MCP_SCOPE = "The user selects which agents get each server, in Marketplace, Apps.";
+const MCP_APPROVAL =
+  "The user's request is the permission: call the tool without asking first. estack asks the user to approve when your access needs it.";
+
+export const MCP_SERVER_TOOL_DEFINITIONS = [
+  {
+    name: "list_mcp_servers",
+    description: `List the MCP servers of this estack server: name, transport, on or off, address or command, the names of its headers and environment variables, sign-in, and forYou: you get its tools when it is on. Values are never shown. ${MCP_SCOPE} Read-only.`,
+    shape: {},
+  },
+  {
+    name: "save_mcp_server",
+    description: `Add an MCP server, or change one by its name, only when the user asks for it. ${MCP_SCOPE} ${MCP_APPROVAL} Then estack connects to the server and saves it when it answers or needs only a sign-in or a key. The result is ready with its tools, needs_sign_in (a Sign in card is in the conversation: wait for the user), needs_key (the user enters the key in Marketplace, Apps; never ask for a key in the chat), or the error. Headers and environment values are not set here: a stdio server that cannot start without a key in its environment is added by the user in Marketplace, Apps. A server that holds keys keeps its transport, address origin, command, arguments and folder. New tools reach the agents from their next turn.`,
+    shape: saveMcpServerToolSchema.shape,
+  },
+  {
+    name: "test_mcp_server",
+    description:
+      "Connect to one saved MCP server and report its tools, or what it needs: a sign-in, a key, or the error. Call it again after the user signs in or enters a key.",
+    shape: namedServerSchema.shape,
+  },
+  {
+    name: "set_mcp_server_enabled",
+    description: `Turn one MCP server on or off when the user asks. ${MCP_SCOPE} ${MCP_APPROVAL}`,
+    shape: setEnabledSchema.shape,
+  },
+  {
+    name: "remove_mcp_server",
+    description: `Remove one MCP server and its sign-in when the user asks. ${MCP_SCOPE} ${MCP_APPROVAL}`,
+    shape: namedServerSchema.shape,
+  },
+] as const;
+
+export type McpServerToolName = (typeof MCP_SERVER_TOOL_DEFINITIONS)[number]["name"];
+
+const MCP_SERVER_TOOL_NAMES: ReadonlySet<string> = new Set(MCP_SERVER_TOOL_DEFINITIONS.map(({ name }) => name));
+
+export function isMcpServerTool(tool: string): tool is McpServerToolName {
+  return MCP_SERVER_TOOL_NAMES.has(tool);
+}
+
+/** The MCP servers of this estack server, as the agent service holds them. */
+export interface AgentMcpServers {
+  list(): McpServerConfig[];
+  /** The servers that estack gives the agents itself and no row holds: the GitHub connection, Computer Use. */
+  builtIn(): readonly McpServerConfig[];
+  signIns(): McpSignInState[];
+  save(config: McpServerConfig): Effect.Effect<unknown, ToolOperationFailed>;
+  setEnabled(mcpServerId: string, enabled: boolean): Effect.Effect<unknown, ToolOperationFailed>;
+  remove(mcpServerId: string): Effect.Effect<unknown, ToolOperationFailed>;
+  /**
+   * A silent test: stored sign-ins only, never a browser. `tested`: the agent asked for this test,
+   * so a saved server with new tools refreshes the sessions.
+   */
+  inspect(config: McpServerConfig, tested?: boolean): Effect.Effect<McpProbeOutcome, ToolOperationFailed>;
+  /** What Sign in would do for an http server that answered without a sign-in. Public documents only. */
+  signInOffer(config: McpServerConfig): Effect.Effect<McpSignInOffer>;
+  /** Masks the MCP secret values in a text that goes back to the agent. */
+  redact(text: string): string;
+  /** The saved, enabled servers that the agent gets and that `mcpFallbackRunsServer` allows. */
+  forAgent(agentId: string): McpServerConfig[];
+  /** Whether the agents that the user selected for this saved server include the agent. */
+  allowsAgent(mcpServerId: string, agentId: string): boolean;
+  /** Runs one tool of a saved server, silent like `inspect`: its result, or the failure sentence. */
+  callTool(
+    config: McpServerConfig,
+    name: string,
+    args: McpToolArguments,
+  ): Effect.Effect<{ result: McpToolCallResult } | { error: string }, ToolOperationFailed>;
+}
+
+/**
+ * Whether estack can run a tool of this server itself, for a provider that left the tool out (#7427).
+ * An http server can always run. A stdio server runs only for a Full access agent: a Workspace only
+ * provider starts it in its sandbox, and estack would start it outside. A Full access provider has
+ * no sandbox, so estack starts the server as the Test button does (#10146).
+ */
+export function mcpFallbackRunsServer(config: McpServerConfig, agent: { access?: AgentAccess | undefined }): boolean {
+  return config.transport === "http" || !workspaceAccessEnforced(agent);
+}
+
+/**
+ * The saved server and the tool that a `tool_call` name gives: `<server>.<tool>`, with the server as
+ * the agent's instructions name it. A provider changes a name such as "My Server" to `My_Server`, and
+ * Antigravity gets `estack_<name>` when its own files use the name, so each form matches. The
+ * provider's own `mcp_<server>_<tool>` is not read: with servers `foo` and `foo_bar` it names two
+ * tools. The longest server name wins.
+ */
+export function findAgentMcpTool(
+  configs: readonly McpServerConfig[],
+  name: string,
+): { config: McpServerConfig; tool: string } | null {
+  let found: { config: McpServerConfig; tool: string; length: number } | null = null;
+  for (const config of configs) {
+    const provider = providerMcpServerName(config.name);
+    for (const server of [config.name, provider, `estack_${provider}`]) {
+      const prefix = `${server}.`;
+      if (!name.startsWith(prefix) || name.length === prefix.length) continue;
+      if (!found || prefix.length > found.length)
+        found = { config, tool: name.slice(prefix.length), length: prefix.length };
+    }
+  }
+  return found && { config: found.config, tool: found.tool };
+}
+
+/**
+ * An MCP tool result as a dynamic tool result: text and images as they are, other content as JSON. The
+ * server's answer is decoded here; an answer in the old `toolResult` form is given as JSON.
+ */
+export function mcpToolCallResponse(answer: McpToolCallResult): DynamicToolResult {
+  const decoded = CallToolResultSchema.safeParse(answer);
+  if (!decoded.success) return { success: true, contentItems: [{ type: "inputText", text: JSON.stringify(answer) }] };
+  const result = decoded.data;
+  const contentItems: DynamicToolResult["contentItems"] = result.content.map((item) =>
+    item.type === "text"
+      ? { type: "inputText", text: item.text }
+      : item.type === "image"
+        ? { type: "inputImage", imageUrl: `data:${item.mimeType};base64,${item.data}` }
+        : { type: "inputText", text: JSON.stringify(item) },
+  );
+  if (contentItems.length === 0)
+    contentItems.push({ type: "inputText", text: JSON.stringify(result.structuredContent ?? {}) });
+  return { success: result.isError !== true, contentItems };
+}
+
+/**
+ * The gateway as the MCP tools reach it. A failure keeps its cause, which says what to correct.
+ * `prepareTest` is what a test waits for first, as the Test button does: the managed tool runtimes.
+ */
+export function mcpServersFromGateway(
+  gateway: McpGateway,
+  prepareTest?: (config: McpServerConfig) => Effect.Effect<void, unknown>,
+  forAgent: (agentId: string) => McpServerConfig[] = () => [],
+  allowsAgent: (mcpServerId: string, agentId: string) => boolean = () => true,
+): AgentMcpServers {
+  const toToolFailure = Effect.mapError(
+    (failure: McpGatewayFailed) => new ToolOperationFailed({ cause: failure.cause }),
+  );
+  // A stdio server that the fallback starts waits for the same runtimes as a test (#10146).
+  const prepared = (config: McpServerConfig) =>
+    (prepareTest?.(config) ?? Effect.void).pipe(Effect.mapError((cause) => new ToolOperationFailed({ cause })));
+  return {
+    list: () => gateway.list(),
+    builtIn: () => gateway.builtIn(),
+    signIns: () => gateway.signIns(),
+    save: (config) => gateway.save({ config }).pipe(toToolFailure),
+    setEnabled: (mcpServerId, enabled) => gateway.setEnabled({ mcpServerId, enabled }).pipe(toToolFailure),
+    remove: (mcpServerId) => gateway.remove({ mcpServerId }).pipe(toToolFailure),
+    inspect: (config, tested) =>
+      prepared(config).pipe(Effect.andThen(gateway.inspect(config, tested).pipe(toToolFailure))),
+    signInOffer: (config) => gateway.signInOffer(config),
+    redact: (text) => gateway.redact(text),
+    forAgent,
+    allowsAgent,
+    callTool: (config, name, args) =>
+      prepared(config).pipe(Effect.andThen(gateway.callTool(config, name, args).pipe(toToolFailure))),
+  };
+}
+
+export interface McpServerToolCall {
+  tool: McpServerToolName;
+  /** The agent that calls the tool. */
+  agentId: string;
+  arguments: unknown;
+  /**
+   * Asks the user to approve the change that `reason` states. `cwd` is the folder a stdio server
+   * starts in, when it names one. True when it is approved.
+   */
+  approve(reason: string, cwd?: string | null): Effect.Effect<boolean, ToolOperationFailed>;
+  /** Shows the user the card that signs in to a saved http server. */
+  requestSignIn(config: McpServerConfig): Effect.Effect<void, ToolOperationFailed>;
+}
+
+/**
+ * Runs one MCP tool. A failure is a result the agent can correct, such as a name in use or an
+ * argument out of range, with the MCP secrets masked.
+ */
+export const handleMcpServerTool = (servers: AgentMcpServers, call: McpServerToolCall) =>
+  asToolResult(servers, runMcpServerTool(servers, call));
+
+/** A saved server that a Marketplace app installs, with the listing's steps to start a local one. */
+export interface MarketplaceAppServer {
+  config: McpServerConfig;
+  setupSteps: readonly string[];
+}
+
+/**
+ * The state of a Marketplace app that is already saved, for an agent that would suggest it. Its
+ * card would only say Connected, so the agent gets what the user must do: a sign-in puts its card in
+ * the conversation, and a local server that does not answer comes with the listing's steps.
+ */
+export const marketplaceAppStatus = (
+  servers: AgentMcpServers,
+  app: MarketplaceAppServer,
+  requestSignIn: McpServerToolCall["requestSignIn"],
+) => asToolResult(servers, runMarketplaceAppStatus(servers, app, requestSignIn));
+
+const runMarketplaceAppStatus = Effect.fn("McpServerTools.marketplaceAppStatus")(function* (
+  servers: AgentMcpServers,
+  { config, setupSteps }: MarketplaceAppServer,
+  requestSignIn: McpServerToolCall["requestSignIn"],
+) {
+  const server = describeServer(config, servers.signIns());
+  if (!config.enabled)
+    return estackToolResult({
+      status: "disabled",
+      server,
+      next: "The app is installed and turned off. Tell the user to turn it on in Marketplace, Apps, or call estack.set_mcp_server_enabled when the user asks.",
+    });
+  const outcome = yield* servers.inspect(config);
+  if (outcome.error === null)
+    return estackToolResult({
+      status: "ready",
+      server,
+      toolCount: outcome.toolCount,
+      tools: outcome.tools,
+      next: "The app answers. Use these tools when your tool search finds them. Otherwise they reach you from your next turn: ask the user to send the request again.",
+    });
+  if (outcome.needs === null && setupSteps.length > 0)
+    return estackToolResult({
+      status: "not_running",
+      server,
+      error: servers.redact(outcome.error),
+      setupSteps,
+      next: "Give the user these steps, end your turn, and call estack.test_mcp_server when the user says it is done.",
+    });
+  return yield* report(servers, { requestSignIn }, config, outcome, false);
+});
+
+/** A failure is a result the agent can correct, with the MCP secrets masked. */
+function asToolResult(
+  servers: AgentMcpServers,
+  effect: Effect.Effect<EstackToolResponse, ToolOperationFailed>,
+): Effect.Effect<EstackToolResponse> {
+  const failed = (error: unknown) => Effect.succeed(estackToolFailure(servers.redact(profileToolErrorMessage(error))));
+  return effect.pipe(
+    Effect.catch((failure) => failed(failure.cause)),
+    Effect.catchDefect(failed),
+  );
+}
+
+const runMcpServerTool = Effect.fn("McpServerTools.handle")(function* (
+  servers: AgentMcpServers,
+  call: McpServerToolCall,
+) {
+  switch (call.tool) {
+    case "list_mcp_servers": {
+      const signIns = servers.signIns();
+      return estackToolResult({
+        servers: [
+          ...servers.list().map((config) => ({
+            ...describeServer(config, signIns),
+            forYou: servers.allowsAgent(config.id, call.agentId),
+          })),
+          ...servers.builtIn().map(describeBuiltInServer),
+        ],
+      });
+    }
+    case "test_mcp_server": {
+      const { name } = yield* toolStep(() => namedServerSchema.parse(call.arguments));
+      const config = yield* findServer(servers, name);
+      const outcome = yield* servers.inspect(config, true);
+      // A server can list its tools to anyone and want a sign-in only to run one: the test passes
+      // and those tools fail. Only a test the agent asks for reads the metadata, not each search.
+      const offer = outcome.error === null ? yield* servers.signInOffer(config) : "none";
+      // A Sign in card that can only fail would come back after each test (#8827).
+      if (offer === "refused")
+        return estackToolResult({
+          status: "ready",
+          server: describeServer(config, servers.signIns()),
+          toolCount: outcome.toolCount,
+          tools: outcome.tools,
+          error: sourceText("error.backend.mcpRegistrationRefused"),
+          next: "The tools that need a sign-in fail, and a sign-in cannot fix it. Tell the user what the error says, in plain words. Do not offer a Sign in card or ask the user to sign in.",
+        });
+      if (offer === "offered") {
+        yield* call.requestSignIn(config);
+        return estackToolResult({
+          status: "ready",
+          server: describeServer(config, servers.signIns()),
+          toolCount: outcome.toolCount,
+          tools: outcome.tools,
+          next: `The server offers a sign-in, which some tools can need. When the user's request needs such a tool: ${SIGN_IN_NEXT}`,
+        });
+      }
+      return yield* report(servers, call, config, outcome, false);
+    }
+    case "save_mcp_server": {
+      const input = yield* toolStep(() => saveMcpServerToolSchema.parse(call.arguments));
+      const existing = servers.list().find((config) => config.name === input.name);
+      const config = normalizeMcpConfig(mergeServer(existing, input));
+      // A configuration the store would refuse is corrected before the user is asked about it.
+      const errors = mcpConfigErrors(config);
+      const invalid = errors.name ?? errors.command ?? errors.url;
+      if (invalid) return estackToolFailure(invalid);
+      // The keys of a row were given for its server. A change that points them at another server, or
+      // that drops them with the other transport, is the user's to make in the Marketplace.
+      if (existing && holdsKeys(existing) && serverMoves(existing, config))
+        return estackToolFailure(sourceText("error.agent.mcpServerKeysMove", { name: existing.name }));
+      const key = existing ? "status.agent.mcpServerChange" : "status.agent.mcpServerAdd";
+      // The command line can quote a key the user typed: the reason also reaches Slack and the phone.
+      const reason = servers.redact(sourceText(key, { name: config.name, target: serverTarget(config) }));
+      if (!(yield* call.approve(reason, config.transport === "stdio" ? config.workingDirectory || null : null)))
+        return estackToolFailure(sourceText("error.agent.mcpServerDeclined"));
+      // A server that is off goes to no agent, so it is saved without a test. A test starts another
+      // copy of a stdio server, which a server that allows one copy refuses while an agent runs it (#7531).
+      if (!config.enabled) {
+        yield* servers.save(config);
+        const saved = servers.list().find((candidate) => candidate.name === config.name) ?? config;
+        return estackToolResult({
+          status: "disabled",
+          server: describeServer(saved, servers.signIns()),
+          appliesFrom: "the next turn of each agent",
+        });
+      }
+      // A server that does not answer is not saved, so no agent is given a broken entry. A server that
+      // needs a sign-in or a key is saved: the sign-in and the key belong to a saved row.
+      const outcome = yield* servers.inspect(config);
+      if (outcome.error !== null && outcome.needs === null)
+        return estackToolFailure(servers.redact(sourceText("error.agent.mcpServerNotSaved", { error: outcome.error })));
+      yield* servers.save(config);
+      return yield* report(servers, call, config, outcome, true);
+    }
+    case "set_mcp_server_enabled": {
+      const { name, enabled } = yield* toolStep(() => setEnabledSchema.parse(call.arguments));
+      const config = yield* findServer(servers, name);
+      const key = enabled ? "status.agent.mcpServerEnable" : "status.agent.mcpServerDisable";
+      if (!(yield* call.approve(sourceText(key, { name: config.name }))))
+        return estackToolFailure(sourceText("error.agent.mcpServerDeclined"));
+      yield* servers.setEnabled(config.id, enabled);
+      return estackToolResult({ name: config.name, enabled, appliesFrom: "the next turn of each agent" });
+    }
+    case "remove_mcp_server": {
+      const { name } = yield* toolStep(() => namedServerSchema.parse(call.arguments));
+      const config = yield* findServer(servers, name);
+      if (!(yield* call.approve(sourceText("status.agent.mcpServerRemove", { name: config.name }))))
+        return estackToolFailure(sourceText("error.agent.mcpServerDeclined"));
+      yield* servers.remove(config.id);
+      return estackToolResult({ name: config.name, removed: true, appliesFrom: "the next turn of each agent" });
+    }
+  }
+});
+
+const findServer = (servers: AgentMcpServers, name: string) => {
+  const config = servers.list().find((candidate) => candidate.name === name);
+  if (config) return Effect.succeed(config);
+  // A built-in server is not a row: its connection in estack turns it on and off.
+  const key = servers.builtIn().some((candidate) => candidate.name === name)
+    ? "error.agent.mcpServerBuiltIn"
+    : "error.agent.mcpServerUnknown";
+  return Effect.fail(new ToolOperationFailed({ cause: new Error(sourceText(key, { name })) }));
+};
+
+const SIGN_IN_NEXT =
+  "A Sign in card is in this conversation. Tell the user, end your turn, and test again when the user says it is done.";
+
+/**
+ * A silent test of each saved http server that a tool search names and that has no sign-in on this
+ * computer. A provider that reaches such a server tries its own sign-in and fails, so the search is
+ * where the agent looks for its tools. A server that needs a sign-in gets its card; others are left out.
+ */
+export const searchSignIns = Effect.fn("McpServerTools.searchSignIns")(function* (
+  servers: AgentMcpServers,
+  named: readonly McpServerConfig[],
+  requestSignIn: McpServerToolCall["requestSignIn"],
+) {
+  const signIns = servers.signIns();
+  const signedIn = new Set(signIns.flatMap((state) => (state.signedIn ? [state.mcpServerId] : [])));
+  const candidates = named.filter(
+    (config) => config.enabled && config.transport === "http" && !signedIn.has(config.id),
+  );
+  // Each probe can wait for its whole deadline, so the search waits for the slowest server only.
+  const found = yield* Effect.forEach(
+    candidates,
+    (config) =>
+      Effect.gen(function* () {
+        const outcome = yield* servers.inspect(config);
+        if (outcome.needs !== "sign_in") return null;
+        yield* requestSignIn(config);
+        return {
+          status: "needs_sign_in",
+          server: describeServer(config, signIns),
+          next: `When the user's request needs this server: ${SIGN_IN_NEXT}`,
+        };
+      }),
+    { concurrency: "unbounded" },
+  );
+  return found.filter((entry) => entry !== null);
+});
+
+/** What a test found, in words the agent acts on. A sign-in also puts its card in the conversation. */
+const report = Effect.fnUntraced(function* (
+  servers: AgentMcpServers,
+  call: Pick<McpServerToolCall, "requestSignIn">,
+  config: McpServerConfig,
+  outcome: McpProbeOutcome,
+  /** The server was just saved, so the agents get it from their next turn. */
+  justSaved: boolean,
+): Effect.fn.Return<EstackToolResponse, ToolOperationFailed> {
+  // By name: a new row has its id only once it is saved.
+  const saved = servers.list().find((candidate) => candidate.name === config.name) ?? config;
+  const server = describeServer(saved, servers.signIns());
+  if (outcome.error === null)
+    return estackToolResult({
+      status: "ready",
+      server,
+      toolCount: outcome.toolCount,
+      tools: outcome.tools,
+      ...(justSaved ? { appliesFrom: "the next turn of each agent" } : {}),
+    });
+  const error = servers.redact(outcome.error);
+  if (outcome.needs === "sign_in") {
+    yield* call.requestSignIn(saved);
+    return estackToolResult({
+      status: "needs_sign_in",
+      server,
+      next: SIGN_IN_NEXT,
+    });
+  }
+  if (outcome.needs === "key")
+    return estackToolResult({
+      status: "needs_key",
+      server,
+      error,
+      next: "Ask the user to enter the key with Edit on the server's page in Marketplace, Apps. Do not ask for the key in the chat.",
+    });
+  return estackToolResult({ status: "error", server, error });
+});
+
+/** A new server from the input, or the saved one with the input over it. Headers and environment stay. */
+function mergeServer(existing: McpServerConfig | undefined, input: z.infer<typeof saveMcpServerToolSchema>) {
+  // A new row carries an empty id: the store gives it one.
+  const base: McpServerConfig = existing ?? {
+    id: "",
+    name: input.name,
+    transport: input.command ? "stdio" : "http",
+    enabled: true,
+    command: "",
+    args: [],
+    env: [],
+    envPassthrough: [],
+    workingDirectory: "",
+    url: "",
+    headers: [],
+  };
+  // An address or a command alone says which transport the agent means.
+  const transport = input.transport ?? (input.url ? "http" : input.command ? "stdio" : base.transport);
+  return {
+    ...base,
+    transport,
+    enabled: input.enabled ?? base.enabled,
+    url: input.url ?? base.url,
+    command: input.command ?? base.command,
+    args: input.args ?? base.args,
+    workingDirectory: input.workingDirectory ?? base.workingDirectory,
+  } satisfies McpServerConfig;
+}
+
+/** A built-in server by name only: its address is estack's own, and it has no headers or variables. */
+function describeBuiltInServer(config: McpServerConfig) {
+  return { name: config.name, transport: config.transport, enabled: true, builtIn: true };
+}
+
+/**
+ * One server without a secret: an address without its query, which can hold a key, and a command
+ * without its arguments. Headers and variables by name only.
+ */
+function describeServer(config: McpServerConfig, signIns: readonly McpSignInState[]) {
+  if (config.transport === "http") {
+    const signIn = signIns.find((state) => state.mcpServerId === config.id);
+    return {
+      name: config.name,
+      transport: config.transport,
+      enabled: config.enabled,
+      url: addressWithoutQuery(config.url),
+      headerNames: config.headers.map(({ key }) => key),
+      signedIn: signIn?.signedIn ?? false,
+      ...(signIn?.needsSignIn ? { needsSignIn: true } : {}),
+    };
+  }
+  return {
+    name: config.name,
+    transport: config.transport,
+    enabled: config.enabled,
+    command: config.command,
+    argumentCount: config.args.length,
+    ...(config.workingDirectory ? { workingDirectory: config.workingDirectory } : {}),
+    environmentNames: [...config.env.map(({ key }) => key), ...config.envPassthrough],
+  };
+}
+
+function holdsKeys(config: McpServerConfig): boolean {
+  return config.headers.length > 0 || config.env.length > 0 || config.envPassthrough.length > 0;
+}
+
+/**
+ * Whether the change gives the row's keys to another server: another transport, origin, or program.
+ * For stdio the arguments and the folder choose the program too, as `npx -y <package>` does.
+ */
+function serverMoves(saved: McpServerConfig, next: McpServerConfig): boolean {
+  if (saved.transport !== next.transport) return true;
+  if (saved.transport === "stdio")
+    return (
+      saved.command !== next.command ||
+      saved.workingDirectory !== next.workingDirectory ||
+      saved.args.length !== next.args.length ||
+      saved.args.some((arg, index) => arg !== next.args[index])
+    );
+  if (!URL.canParse(saved.url) || !URL.canParse(next.url)) return saved.url !== next.url;
+  return new URL(saved.url).origin !== new URL(next.url).origin;
+}
+
+/** What the approval names: the address without its query, or the whole command line the server runs. */
+function serverTarget(config: McpServerConfig): string {
+  if (config.transport === "http") return addressWithoutQuery(config.url);
+  const line = [config.command, ...config.args].join(" ");
+  return line.length > 500 ? `${line.slice(0, 499)}…` : line;
+}
+
+function addressWithoutQuery(url: string): string {
+  if (!URL.canParse(url)) return url;
+  const address = new URL(url);
+  return `${address.origin}${address.pathname}`;
+}

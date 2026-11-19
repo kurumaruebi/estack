@@ -1,0 +1,80 @@
+#!/bin/sh
+set -eu
+umask 002
+cd "$(dirname "$0")/../.."
+export PATH="$HOME/.bun/bin:$PATH"
+
+usage() {
+  echo "使い方: estack/bin/estack-instance stable|dev [start|stop]" >&2
+  exit 2
+}
+
+channel=${1:-}
+case "$channel" in
+stable | dev) ;;
+*) usage ;;
+esac
+config="${ESTACK_INSTANCE_DIR:-/etc/estack/instances}/$channel.env"
+fixed=0
+if [ -e "$config" ]; then
+  if [ ! -r "$config" ]; then
+    echo "$config を読めません（install-vps-instance で持ち主のグループに読めるようにします）。" >&2
+    exit 1
+  fi
+  set -a
+  . "$config"
+  set +a
+  fixed=1
+  metro_unit="estack-metro@$channel"
+else
+  metro_unit="estack-metro"
+fi
+
+if [ "$fixed" = "1" ]; then export ESTACK_DEV_FIXED_PORTS="${ESTACK_DEV_FIXED_PORTS:-1}"; fi
+export ESTACK_DEV_REGISTRY_DIR="${ESTACK_DEV_REGISTRY_DIR:-$HOME/.cache/estack/dev}"
+debug=${ESTACK_DEV_REMOTE_DEBUGGING_PORT:-9333}
+metro_port=${ESTACK_METRO_PORT:-8082}
+logs="$HOME/.cache/estack"
+mkdir -p "$logs"
+log="$logs/dev.log"
+
+case "${2:-start}" in
+start)
+  ts=$(tailscale ip -4 | head -n 1)
+  if ss -ltn | grep -q ":$debug "; then
+    echo "$channel の一式はもう動いています（$debug 番）。"
+  else
+    ESTACK_DEV_SKIP_SEED=1 ESTACK_DEV_READY_TIMEOUT_MS=180000 ESTACK_API_HOST="${ESTACK_API_HOST:-0.0.0.0}" \
+      REMOTE_SIGNAL_URL="${ESTACK_PUBLIC_SIGNAL_URL:-ws://$ts:${REMOTE_SIGNAL_PORT:-3101}/v1/signal}" \
+      ESTACK_MOBILE_AUTH_API_URL="${ESTACK_PUBLIC_API_URL:-http://$ts:${ESTACK_API_PORT:-3100}}" TURN_HOST="$ts" \
+      setsid nohup xvfb-run -a -s "-screen 0 1280x800x24" bun run dev >"$log" 2>&1 </dev/null &
+    echo "$channel の一式を起動しました（記録: ${log}）。"
+    owner="${ESTACK_OWNER_ENV:-$HOME/.config/estack/owner.env}"
+    if [ -f "$owner" ]; then
+      . "$owner"
+      for attempt in $(seq 1 40); do
+        if ss -ltn | grep -q ":$debug "; then break; fi
+        sleep 5
+      done
+      sleep 30
+      bun estack/scripts/server-signin.ts "$ESTACK_OWNER_EMAIL" || echo "サーバーのサインインに失敗しました。"
+    fi
+  fi
+  echo "Metro は $metro_unit の常駐（systemctl status ${metro_unit}）。Expo Go で開く URL: ${ESTACK_PUBLIC_METRO_URL:-exp://$ts:$metro_port}"
+  ;;
+stop)
+  bun run dev:stop || true
+  for attempt in $(seq 1 30); do
+    holders=$(ss -ltnpH "sport = :$debug" | grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u)
+    if [ -z "$holders" ]; then exit 0; fi
+    echo "$debug 番を握ったまま残ったプロセスを止めます: $holders"
+    kill $holders 2>/dev/null || true
+    sleep 2
+  done
+  echo "$debug 番が空きません。" >&2
+  exit 1
+  ;;
+*)
+  usage
+  ;;
+esac

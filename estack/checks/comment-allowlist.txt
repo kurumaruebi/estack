@@ -1,0 +1,15 @@
+# 持ち主の承認で残すコメント（パス:コメント）。検査はここに書いた物だけ通す。
+# 2026-11-19: 公開の実態に合わせた Dockerfile の使い方の説明（estack/public-identity）。
+docker/Dockerfile:# The estack Docker image: the Linux release, run as a self-hosted server (docs/docker.md). You
+docker/Dockerfile:# build it from the AppImage you built from this repository:
+# 2026-11-19: すでにあった使い方のコメントの URL だけ kurumaruebi/estack に向け直した物。
+scripts/hermes-server-e2e.ts://   bun run test:hermes-server [-- --image ghcr.io/kurumaruebi/estack:0.60.0]
+scripts/install-server.sh:#   curl -fsSL https://raw.githubusercontent.com/kurumaruebi/estack/main/scripts/install-server.sh | sudo bash
+# 2026-11-19: bloub を @estack/bloub に書き換えたことで新規行とみなされた、すでにあった説明コメント。
+apps/mobile/metro.config.js:// `@estack/bloub/assets/<file>` names a file in that folder.
+apps/mobile/src/features/agents/model/plush/plush-felt.ts:* The felt plush of `@estack/bloub/plush` 0.6.3 (MIT), for the phone. That entry renders
+packages/brand/src/bloub-avatar.ts:* `@estack/bloub/plush` in this colour and cropped to the fur.
+src/main/start-recovery-plush.ts:// The felt plush of the recovery window, in the `failed` pose of `PlushBot` (`@estack/bloub`)
+scripts/estack/check-comments.ts:/** Vendored third-party code. estack's comment rules apply to estack-written lines, not to it. */
+# 2026-11-19: 会社名を外して書き直した、すでにあった説明コメント。
+apps/auth-api/src/routes/[.]well-known/apple-app-site-association.ts:// The mobile app moves to the operator's team. Builds from the old team stay installed until

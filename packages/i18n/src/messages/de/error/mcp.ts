@@ -1,0 +1,25 @@
+import type { PartialTranslation } from "../../../message";
+import type { messages as source } from "../../en/error/mcp";
+
+export const messages = {
+  "error.mcp.redirectByName": "Diese Adresse ist nicht über ihren Namen erreichbar.",
+  "error.mcp.redirectNotSignIn": "Diese Adresse gehört nicht zu einer Anmeldung.",
+  "error.mcp.redirectRefused": "Die Anmeldung wurde abgelehnt. Kehre zu estack zurück und versuche es erneut.",
+  "error.mcp.redirectNoSignIn": "Keine Anmeldung wartet darauf. Sie wurde möglicherweise bereits beendet.",
+  "error.mcp.redirectSignedIn": "estack ist angemeldet. Du kannst dieses Fenster schließen.",
+  "error.mcp.signInFileUnreadable": "Die MCP-Anmeldedatei ist nicht lesbar.",
+  "error.mcp.signInFileTooLarge": "Die MCP-Anmeldedatei ist zu groß.",
+  "error.mcp.unsupported": "Dieser Server unterstützt keine MCP-Server.",
+  "error.mcp.signInOnHost": "Die Anmeldung bei einem MCP-Server funktioniert nur in estack auf dem Host-Computer.",
+  "error.mcp.signInPageOnServer":
+    "Diese Anmeldeseite öffnet sich nur auf dem Server. Bitte einen Eigentümer oder Admin des Servers, sich anzumelden.",
+  "error.mcp.signInPageOnServerSwitch":
+    "Diese Anmeldeseite öffnet sich nur auf dem Server. Wechsle zu diesem Server und wähle dann erneut „Anmelden“.",
+  "error.mcp.signInAppUnsupported": "Dieser Server unterstützt keine Anmelde-Apps. Aktualisiere estack auf dem Host.",
+  "error.mcp.redirectRelayed": "estack hat die Anmeldung an den Server gesendet. Du kannst dieses Fenster schließen.",
+  "error.mcp.relayEnded": "Diese Anmeldung ist beendet. Starte sie erneut.",
+  "error.mcp.relayNoState":
+    "Die Anmeldeseite des Servers schützt ihre Rückkehradresse nicht, darum öffnet estack sie nicht auf diesem Computer.",
+  "error.mcp.relayAddressInvalid":
+    "Das ist nicht die Adresse am Ende dieser Anmeldung. Kopiere die vollständige Adresse aus dem Browser.",
+} as const satisfies PartialTranslation<typeof source>;

@@ -1,0 +1,83 @@
+import type { RoutineFields, RoutineSchedule } from "@estack/contracts/ipc";
+import type { EventRoutine } from "@estack/contracts/ipc-events";
+import { routineDraftSummary } from "@estack/ui/features/conversation/routine-schedule-draft";
+import { routineScheduleToDraft } from "@estack/ui/features/conversation/routine-schedule-saved";
+import { type RoutineText, routineScheduleSummary } from "@estack/ui/features/conversation/routine-schedule-ui";
+import type { RoutineEditorRecord } from "./routines-port";
+
+export function isEventRoutine(routine: RoutineEditorRecord): routine is EventRoutine {
+  return "owner" in routine;
+}
+
+export function routineScheduleOf(routine: RoutineEditorRecord): RoutineSchedule {
+  if (isEventRoutine(routine)) {
+    return routine.trigger.kind === "schedule" ? routine.trigger.schedule : { kind: "daily", time: "09:00" };
+  }
+  return routine.trigger.schedule;
+}
+
+/**
+ * The list row reads the schedule as the chips do. A schedule the chips show only as cron, such
+ * as an interval, keeps its own summary: "Every 15 minutes", not the cron text.
+ */
+export function routineListSummary(routine: RoutineEditorRecord, text: RoutineText): string {
+  if (isEventRoutine(routine) && routine.trigger.kind === "webhook") {
+    const eventType = routine.trigger.eventType;
+    return eventType
+      ? text.t("routine.settings.webhookSummary", { eventType })
+      : text.t("routine.settings.webhookSummaryAny");
+  }
+  const schedule = routineScheduleOf(routine);
+  const draft = routineScheduleToDraft(schedule);
+  if (draft.kind === "custom") return routineScheduleSummary(schedule, false, text);
+  return routineDraftSummary(draft, text);
+}
+
+/**
+ * "Paused by its 8:00 AM run" when a scheduled run of the routine paused it (#10048), else undefined.
+ * The time is in the routine's zone, as its schedule is, and the label names that zone when it is not
+ * the viewer's zone, as the next-run label does. A run on another day also gives the date.
+ */
+export function routinePausedByRunLabel(
+  routine: Pick<RoutineFields, "active" | "timezone" | "pausedByRun">,
+  text: RoutineText,
+  now = new Date(),
+): string | undefined {
+  const scheduledFor = routine.active ? undefined : routine.pausedByRun?.scheduledFor;
+  if (!scheduledFor) return undefined;
+  const runAt = new Date(scheduledFor);
+  if (Number.isNaN(runAt.getTime())) return undefined;
+  const timeZone = knownTimeZone(routine.timezone);
+  const day = (date: Date) => text.format.date(date, { year: "numeric", month: "numeric", day: "numeric", timeZone });
+  const time = text.format.date(
+    runAt,
+    day(runAt) === day(now)
+      ? { hour: "numeric", minute: "2-digit", timeZone }
+      : { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone },
+  );
+  return [text.t("routine.settings.pausedByRun", { time }), routineTimeZoneLabel(routine, text)]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+export function localTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+}
+
+/** "Warsaw time", only when the routine does not run in the viewer's zone. */
+export function routineTimeZoneLabel(routine: Pick<RoutineFields, "timezone">, text: RoutineText): string | undefined {
+  const timeZone = knownTimeZone(routine.timezone);
+  if (!timeZone || timeZone === localTimeZone()) return undefined;
+  const city = timeZone.split("/").at(-1)?.replaceAll("_", " ");
+  return text.t("routine.card.timeZone", { city: city ?? timeZone });
+}
+
+export function knownTimeZone(timeZone: string | undefined): string | undefined {
+  if (!timeZone) return undefined;
+  try {
+    new Intl.DateTimeFormat(undefined, { timeZone });
+    return timeZone;
+  } catch {
+    return undefined;
+  }
+}

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.estack.mac-worker</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>@REPO@/estack/bin/mac-worker</string>
+  </array>
+  <key>StartInterval</key>
+  <integer>60</integer>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>ProcessType</key>
+  <string>Standard</string>
+  <key>StandardOutPath</key>
+  <string>@HOME@/estack-work/worker.log</string>
+  <key>StandardErrorPath</key>
+  <string>@HOME@/estack-work/worker.log</string>
+</dict>
+</plist>

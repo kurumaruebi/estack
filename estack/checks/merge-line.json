@@ -1,0 +1,7 @@
+{
+  "autoMerge": [],
+  "minMerges": 10,
+  "maxRevertRate": 0.05,
+  "windowDays": 30,
+  "countSince": "2026-11-19T00:03:34Z"
+}

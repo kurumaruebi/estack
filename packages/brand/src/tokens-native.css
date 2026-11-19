@@ -1,0 +1,165 @@
+/*
+ * The mobile theme layer. Only apps/mobile imports this file. The desktop app and
+ * the web client have their own light layer, tokens-light.css, which a root
+ * attribute turns on; the public site is always dark.
+ *
+ * It cannot be folded into tokens.css. `@variant light` is not a Tailwind v4
+ * variant at all; uniwind registers it as a custom variant, so desktop and web
+ * would fail to compile the block. And `@variant dark` in stock Tailwind means
+ * `prefers-color-scheme: dark`, which would turn the public site light for anyone
+ * running a light system.
+ *
+ * The dark block repeats the base values from tokens.css instead of inheriting
+ * them, which looks like something to tidy up. It is not. uniwind hard-codes its
+ * theme list to ['light', 'dark'] and discovers a theme's variables only by
+ * reading `@variant` at-rules, so a name present in one block and absent from the
+ * other is a theme that cannot resolve it. uniwind notices, but only writes a red
+ * line to the console - it does not fail the build. Keep every value here equal to
+ * the base, so that mobile dark does not drift away from desktop.
+ */
+
+:root {
+  @variant light {
+    --estack-bg-canvas: #f5f5f7;
+    --estack-bg-native-canvas: #f5f5f7;
+    --estack-bg-native-sidebar: #ffffff;
+    --estack-bg-sidebar: #ffffff;
+    --estack-bg-surface: #ffffff;
+    --estack-bg-surface-raised: #f0f0f3;
+    --estack-bg-control: #e9e9ed;
+    --estack-bg-control-active: #dedee4;
+    --estack-bg-overlay: rgba(20, 20, 20, 0.28);
+    --estack-border: rgba(20, 20, 20, 0.1);
+    --estack-border-strong: rgba(20, 20, 20, 0.16);
+    --estack-text-primary: #141414;
+    --estack-text-secondary: rgba(20, 20, 20, 0.72);
+    --estack-text-muted: rgba(20, 20, 20, 0.64);
+    --estack-text-dim: rgba(20, 20, 20, 0.34);
+    --estack-text-on-accent: #ffffff;
+    --estack-text-on-light: #141414;
+    --estack-text-on-status: #07130c;
+    --estack-action: #141414;
+    --estack-action-foreground: #f2f2f2;
+    --estack-accent: #6960f1;
+    --estack-accent-text: #5b52df;
+    --estack-logo-production: #cdadec;
+    --estack-logo-eye: #040007;
+    --estack-paper: #f0f0f0;
+    --estack-paper-text: #141414;
+    --estack-paper-text-muted: rgba(20, 20, 20, 0.52);
+    --estack-paper-border: rgba(20, 20, 20, 0.14);
+    --estack-success: #32a85d;
+    --estack-warning: #c58a23;
+    --estack-danger: #d85f58;
+    --estack-success-text: #1e6f3b;
+    --estack-warning-text: #865700;
+    --estack-danger-text: #b02a2f;
+    --estack-drawer-scrim: #000000;
+    --estack-scroll-edge-overlay: rgba(245, 245, 247, 0.46);
+    --estack-shadow-card: 0 1px 2px rgba(20, 20, 20, 0.05);
+    --estack-shadow-overlay: 0 12px 32px rgba(20, 20, 20, 0.12);
+
+    /* Not a colour, and identical in both themes. uniwind only ever learns a
+     * variable from a @variant block, so a token @theme inline reaches through
+     * var() has to be declared here or the utility resolves to nothing on native.
+     * These two back tracking-estack-tight and tracking-estack-wide. */
+    --estack-tracking-tight: -0.1px;
+    --estack-tracking-wide: 0.02em;
+    --estack-bg-sheet: #fcfcfc;
+    --estack-bg-grouped: #f2f2f2;
+    --estack-text-grouped-secondary: #69696e;
+    --estack-border-grouped: #dddddf;
+    --estack-radius-grouped: 16px;
+    --estack-bg-chrome-glass: rgba(250, 250, 252, 0.94);
+    --estack-border-chrome-glass: rgba(20, 20, 20, 0.1);
+    /* File references: the same hues as dark, darker so the name reads on a light surface. */
+    --estack-file-blue: #1f6fd1;
+    --estack-file-blue-soft: rgba(31, 111, 209, 0.12);
+    --estack-file-yellow: #865700;
+    --estack-file-yellow-soft: rgba(197, 138, 35, 0.14);
+    --estack-file-orange: #b55a1f;
+    --estack-file-orange-soft: rgba(181, 90, 31, 0.12);
+    --estack-file-teal: #1c7f92;
+    --estack-file-teal-soft: rgba(28, 127, 146, 0.12);
+    --estack-file-green: #1e6f3b;
+    --estack-file-green-soft: rgba(50, 168, 93, 0.14);
+    --estack-file-red: #b02a2f;
+    --estack-file-red-soft: rgba(216, 95, 88, 0.14);
+    --estack-file-pink: #a3478f;
+    --estack-file-pink-soft: rgba(163, 71, 143, 0.12);
+    --estack-file-default: #5b52df;
+    --estack-file-default-soft: rgba(91, 82, 223, 0.12);
+    /* Markdown tables: the desktop values, so a table looks the same on the phone. */
+    --estack-data-table-header-text: #6b6b70;
+    --estack-data-table-text: #1c1c1e;
+  }
+
+  @variant dark {
+    /* biome-ignore lint/suspicious/noDuplicateCustomProperties: Theme variants intentionally share semantic token names. */
+    --estack-bg-canvas: #1a1a1a;
+    --estack-bg-native-canvas: #141414;
+    --estack-bg-native-sidebar: #141414;
+    --estack-bg-sidebar: #1a1a1a;
+    --estack-bg-surface: #212121;
+    --estack-bg-surface-raised: #242424;
+    --estack-bg-control: #212121;
+    --estack-bg-control-active: #2a2a2a;
+    --estack-bg-overlay: rgba(26, 26, 26, 0.92);
+    --estack-border: rgba(255, 255, 255, 0.035);
+    --estack-border-strong: rgba(255, 255, 255, 0.045);
+    --estack-text-primary: #ffffff;
+    --estack-text-secondary: #dcdcdc;
+    --estack-text-muted: #979797;
+    --estack-text-dim: #6a6a6a;
+    --estack-text-on-accent: #ffffff;
+    --estack-text-on-light: #141414;
+    --estack-text-on-status: #07130c;
+    --estack-action: #f0f0f0;
+    --estack-action-foreground: #141414;
+    --estack-accent: #007cf7;
+    --estack-accent-text: #42a0ff;
+    --estack-logo-production: #d6adf2;
+    --estack-logo-eye: #040007;
+    --estack-paper: #f0f0f0;
+    --estack-paper-text: #141414;
+    --estack-paper-text-muted: rgba(20, 20, 20, 0.52);
+    --estack-paper-border: rgba(20, 20, 20, 0.14);
+    --estack-success: #31cf76;
+    --estack-warning: #ff9412;
+    --estack-danger: #fd2f3b;
+    --estack-success-text: #31cf76;
+    --estack-warning-text: #ff9412;
+    --estack-danger-text: #ff6069;
+    --estack-drawer-scrim: #000000;
+    --estack-scroll-edge-overlay: rgba(0, 0, 0, 0.72);
+    --estack-shadow-card: 0 0 0 transparent;
+    --estack-shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.48);
+    --estack-tracking-tight: -0.1px;
+    --estack-tracking-wide: 0.02em;
+    --estack-bg-sheet: #141414;
+    --estack-bg-grouped: #212121;
+    --estack-text-grouped-secondary: #96969b;
+    --estack-border-grouped: #333335;
+    --estack-radius-grouped: 16px;
+    --estack-bg-chrome-glass: rgba(38, 38, 40, 0.96);
+    --estack-border-chrome-glass: rgba(255, 255, 255, 0.08);
+    --estack-file-blue: #74b9ff;
+    --estack-file-blue-soft: rgba(116, 185, 255, 0.14);
+    --estack-file-yellow: #ff9412;
+    --estack-file-yellow-soft: rgba(255, 148, 18, 0.12);
+    --estack-file-orange: #f0a06a;
+    --estack-file-orange-soft: rgba(240, 160, 106, 0.14);
+    --estack-file-teal: #6bc7d9;
+    --estack-file-teal-soft: rgba(107, 199, 217, 0.14);
+    --estack-file-green: #31cf76;
+    --estack-file-green-soft: rgba(49, 207, 118, 0.12);
+    --estack-file-red: #fd2f3b;
+    --estack-file-red-soft: rgba(253, 47, 59, 0.16);
+    --estack-file-pink: #d98ac9;
+    --estack-file-pink-soft: rgba(217, 138, 201, 0.14);
+    --estack-file-default: #42a0ff;
+    --estack-file-default-soft: rgba(0, 124, 247, 0.14);
+    --estack-data-table-header-text: #a1a1a1;
+    --estack-data-table-text: #f5f5f5;
+  }
+}

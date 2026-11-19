@@ -1,0 +1,121 @@
+.backup-model-logo {
+  display: inline-flex;
+  width: var(--estack-icon-md);
+  height: var(--estack-icon-md);
+  flex: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.backup-model-logo svg {
+  width: var(--estack-icon-sm);
+  height: var(--estack-icon-sm);
+  overflow: visible;
+  fill: var(--estack-provider-current);
+}
+
+.backup-model-option {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--estack-space-2);
+}
+
+.backup-models-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--estack-space-4);
+}
+
+.backup-models-intro {
+  margin: 0;
+  padding-inline: var(--estack-space-1);
+}
+
+.backup-models-empty {
+  margin: 0;
+  padding: var(--estack-space-2) var(--estack-space-3);
+}
+
+.backup-models-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.backup-models-row {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  gap: var(--estack-space-2);
+  padding-block: var(--estack-space-1);
+  padding-inline: var(--estack-space-3) var(--estack-space-2);
+}
+
+.backup-models-number {
+  width: var(--estack-icon-sm);
+  flex: none;
+  color: var(--estack-text-muted);
+  font-size: var(--estack-text-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.backup-models-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.backup-models-name {
+  overflow: hidden;
+  color: var(--estack-text-primary);
+  font-size: var(--estack-text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.backup-models-state {
+  color: var(--estack-text-muted);
+  font-size: var(--estack-text-sm);
+  line-height: var(--estack-leading-sm);
+}
+
+/* The same dimming the provider picker uses for an unavailable provider. */
+.backup-models-row:not([data-state="ready"]) .backup-model-logo svg {
+  opacity: 0.44;
+}
+
+.backup-models-row:not([data-state="ready"]) .backup-models-name {
+  color: var(--estack-text-muted);
+  text-decoration: line-through;
+}
+
+.backup-models-actions {
+  display: inline-flex;
+  flex: none;
+}
+
+/* The frame is a UiBlockCard (ui-blocks.css). */
+.usage-limit-ask-card {
+  max-width: 560px;
+  margin: var(--estack-space-4) 0 0;
+}
+
+.usage-limit-ask-remember {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--estack-space-2);
+  color: var(--estack-text-secondary);
+  font-size: var(--estack-text-sm);
+  cursor: pointer;
+}
+
+.usage-limit-ask-error {
+  margin: 0;
+  color: var(--estack-danger);
+  font-size: var(--estack-text-sm);
+}

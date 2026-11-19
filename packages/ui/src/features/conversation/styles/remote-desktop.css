@@ -1,0 +1,215 @@
+.conversation-panel.browser-panel-active {
+  padding-inline-end: var(--browser-panel-width, 380px);
+}
+
+.remote-desktop-workspace {
+  position: fixed;
+  z-index: var(--estack-layer-toast);
+  inset: 0;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  background: var(--estack-bg-canvas);
+  color: var(--estack-text-primary);
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition:
+    opacity var(--estack-duration-fast) cubic-bezier(0.2, 0, 0, 1),
+    visibility 0s linear var(--estack-duration-fast);
+}
+
+.remote-desktop-workspace-visible {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.remote-desktop-workspace:focus {
+  outline: none;
+}
+
+.remote-desktop-header {
+  display: flex;
+  height: 38px;
+  min-height: 38px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-start;
+  overflow: hidden;
+  border-bottom: 1px solid var(--estack-border);
+  padding-block: 0;
+  padding-inline: 0 8px;
+  background: var(--estack-bg-sidebar);
+}
+
+.remote-desktop-workspace-darwin .remote-desktop-header {
+  /* The macOS traffic lights are at the inline start in every language. */
+  padding-inline-start: 84px;
+}
+
+.remote-desktop-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex: 0 1 auto;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-inline-start: auto;
+  white-space: nowrap;
+}
+
+.remote-desktop-display-controls {
+  min-width: 0;
+  display: flex;
+  flex: 0 1 168px;
+  align-items: center;
+}
+
+.remote-desktop-back-button,
+.remote-desktop-disconnect-button {
+  flex: 0 0 auto;
+}
+
+.remote-desktop-disconnect-button {
+  color: var(--estack-text-muted);
+}
+
+.remote-desktop-disconnect-button:hover:not(:disabled, [aria-disabled="true"]),
+.remote-desktop-disconnect-button:focus-visible:not(:disabled, [aria-disabled="true"]) {
+  background: var(--estack-danger-soft);
+  color: var(--estack-danger);
+}
+
+.remote-desktop-stage {
+  position: relative;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  background: var(--estack-accent);
+}
+
+.remote-desktop-viewer,
+.remote-desktop-viewer > div {
+  width: 100%;
+  height: 100%;
+}
+
+.remote-desktop-viewer {
+  overflow: hidden;
+  display: block;
+  object-fit: contain;
+}
+
+.remote-desktop-display-select {
+  width: min(168px, 22vw);
+  min-width: 112px;
+  flex: 0 1 168px;
+  font-size: var(--estack-text-sm);
+}
+
+.remote-desktop-display-select-content {
+  z-index: calc(var(--estack-layer-toast) + 1);
+}
+
+.remote-desktop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 7px;
+  background: var(--estack-bg-overlay);
+  padding: 24px;
+  text-align: center;
+}
+
+.remote-desktop-overlay strong {
+  max-width: 330px;
+  color: var(--estack-text-primary);
+  font-size: var(--estack-text-md);
+  font-weight: 600;
+}
+
+.remote-desktop-connecting-avatar {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 5px;
+  filter: drop-shadow(0 8px 18px var(--estack-accent-soft));
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition:
+    opacity var(--estack-duration-overlay) var(--estack-ease-out),
+    transform var(--estack-duration-overlay) var(--estack-ease-out);
+  will-change: opacity, transform;
+}
+
+@starting-style {
+  .remote-desktop-connecting-avatar {
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+  }
+}
+
+.remote-desktop-overlay > span:not(.ui-spinner):not(.remote-desktop-empty-mark) {
+  max-width: 330px;
+  color: var(--estack-text-muted);
+  font-size: var(--estack-text-sm);
+  line-height: 16px;
+}
+
+.remote-desktop-empty-mark {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 5px;
+  place-items: center;
+  border: 1px solid var(--estack-border);
+  border-radius: var(--estack-radius-lg);
+  background: var(--estack-hover);
+  color: var(--estack-text-muted);
+}
+
+.remote-desktop-empty-mark svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: var(--estack-icon-stroke-lg);
+}
+
+.remote-desktop-overlay > button {
+  height: 34px;
+  border: 1px solid var(--estack-border);
+  border-radius: var(--estack-radius-md);
+  background: var(--estack-border);
+  color: var(--estack-text-primary);
+  font-size: var(--estack-text-sm);
+  font-weight: 600;
+}
+
+.remote-desktop-overlay > button:hover {
+  background: var(--estack-border-strong);
+}
+
+.remote-desktop-overlay > button {
+  min-width: 92px;
+  margin-top: 5px;
+  padding: 0 13px;
+}
+
+.remote-desktop-button-dot {
+  position: absolute;
+  inset-inline-end: 4px;
+  bottom: 4px;
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--estack-bg-sidebar);
+  border-radius: var(--estack-radius-pill);
+  background: var(--estack-success);
+}

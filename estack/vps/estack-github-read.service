@@ -1,0 +1,19 @@
+[Unit]
+Description=estack GitHub read proxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=estack-keys
+Group=estack-keys
+ExecStart=/usr/local/bin/bun /opt/estack-keys/github-read-proxy.js /etc/estack/github-read.json
+Restart=always
+RestartSec=5
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadOnlyPaths=/var/lib/estack-keys /etc/estack
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,334 @@
+/* The page rail at the left of the window, on desktop and on the web. The window styles place it in
+ * the window grid. The window buttons of macOS sit at the top of the rail, in the top row. Other
+ * windows can show the estack logo there. */
+.window-rail {
+  position: relative;
+  display: flex;
+  width: 52px;
+  min-height: 0;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: calc(var(--left-header-height, 38px) + var(--estack-space-1)) 0 var(--estack-space-3);
+  -webkit-app-region: drag;
+}
+
+/* The logo has the size of a rail icon, in the column of the icons. Its top padding is the same as
+ * the top padding of `.sidebar-topbar`, so it is on the center line of the server logo. */
+.window-rail-logo {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: flex;
+  height: var(--left-header-height, 38px);
+  align-items: center;
+  justify-content: center;
+  padding-top: 2px;
+}
+
+.window-rail-logo .app-logo {
+  display: block;
+  width: var(--estack-icon-lg);
+  height: var(--estack-icon-lg);
+}
+
+.window-rail-logo-link {
+  display: flex;
+  border-radius: var(--estack-radius-logo);
+  -webkit-app-region: no-drag;
+}
+
+.window-rail-logo-link:focus-visible {
+  outline: 0;
+  box-shadow: var(--estack-focus-ring);
+}
+
+.window-rail-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--estack-space-1-5);
+  /* The window swallows mouse events over a drag area. With the gaps between the buttons in the
+   * drag area, the pointer left the group between two buttons, and the tooltip closed instead of
+   * moving to the next button. */
+  -webkit-app-region: no-drag;
+}
+
+/* The end of the rail: Marketplace, Help and Settings, then the menu of the open server. */
+.window-rail-end,
+.window-rail-server-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--estack-space-1-5);
+}
+
+.window-rail-server-slot {
+  -webkit-app-region: no-drag;
+}
+
+.window-rail-server-slot:empty {
+  display: none;
+}
+
+/* A short line sets the server apart from the pages. */
+.window-rail-server-slot::before {
+  width: var(--estack-space-6);
+  height: 1px;
+  margin-block: var(--estack-space-0-5);
+  background: var(--estack-border);
+  content: "";
+}
+
+/* The logo of the open server. The button opens the server menu beside it. */
+.window-rail-button.window-rail-server > .server-menu-mark {
+  width: var(--estack-space-6);
+  height: var(--estack-space-6);
+}
+
+/* The dot of a hosted server that sleeps or wakes, at the corner of the logo. */
+.window-rail-button.window-rail-server > .window-rail-server-sleep {
+  position: absolute;
+  inset-block-end: var(--estack-space-1);
+  inset-inline-end: var(--estack-space-1);
+}
+
+/* A rail icon is 20px, so it takes the line of the large icons. The line does not change on hover or on
+ * the open page; only the color does. */
+.window-rail-button {
+  --estack-icon-stroke: var(--estack-icon-stroke-lg);
+
+  position: relative;
+  display: flex;
+  width: var(--estack-control-lg);
+  height: var(--estack-control-lg);
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--estack-radius-lg);
+  background: transparent;
+  padding: 0;
+  color: var(--estack-text-muted);
+  font: inherit;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .window-rail-button:hover {
+    background: var(--estack-bg-control-hover);
+    color: var(--estack-text-primary);
+  }
+}
+
+.window-rail-button[aria-current="page"],
+.window-rail-button[aria-current="page"]:hover:not(:disabled):not([data-disabled]) {
+  background: var(--estack-bg-control-active);
+  color: var(--estack-text-primary);
+}
+
+.window-rail-button:focus-visible {
+  outline: 0;
+  box-shadow: var(--estack-focus-ring);
+}
+
+.window-rail-button svg {
+  width: var(--estack-icon-lg);
+  height: var(--estack-icon-lg);
+}
+/* The dot of a rail button that has a notice, such as an update. */
+.window-rail-notice {
+  position: absolute;
+  top: var(--estack-space-1-5);
+  inset-inline-end: var(--estack-space-1-5);
+  width: var(--estack-space-2);
+  height: var(--estack-space-2);
+  border-radius: var(--estack-radius-pill);
+  background: var(--estack-badge-new);
+}
+
+/* The hover card of a usage ring shows the limits only. The usage page has the refresh. */
+.window-rail-usage-card .account-usage-refresh {
+  display: none;
+}
+
+/* The card opens, closes and moves with the tooltip motion, not with the transition of the usage
+ * popover. A transition would cover the motion. */
+.account-usage-popover.window-rail-usage-card {
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  transition: none;
+  transform-origin: var(--kb-tooltip-content-transform-origin);
+}
+
+.window-rail-usage-card .account-usage-popover-header {
+  flex: none;
+}
+
+/* With many accounts, the list scrolls under the header. A fade shows at each edge that has more rows. */
+.window-rail-usage-card .account-usage-providers {
+  --window-rail-usage-fade-top: 0px;
+  --window-rail-usage-fade-bottom: 0px;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  mask-image: linear-gradient(
+    to bottom,
+    var(--estack-transparent),
+    var(--estack-text-primary) var(--window-rail-usage-fade-top),
+    var(--estack-text-primary) calc(100% - var(--window-rail-usage-fade-bottom)),
+    var(--estack-transparent)
+  );
+}
+
+.window-rail-usage-card .account-usage-providers::-webkit-scrollbar {
+  display: none;
+}
+
+.window-rail-usage-card .account-usage-providers.scroll-fade-top {
+  --window-rail-usage-fade-top: calc(var(--estack-space-1) * 6);
+}
+
+.window-rail-usage-card .account-usage-providers.scroll-fade-bottom {
+  --window-rail-usage-fade-bottom: calc(var(--estack-space-1) * 6);
+}
+
+/* Usage rings: the provider logo inside one ring per limit window. The hover fill is a circle around
+ * the rings. */
+.window-rail-button.window-rail-usage {
+  border-radius: var(--estack-radius-pill);
+}
+
+.window-rail-button .window-rail-usage-ring {
+  position: absolute;
+  inset: 1px;
+  width: 34px;
+  height: 34px;
+  transform: rotate(-90deg);
+}
+
+.window-rail-button .window-rail-usage-logo {
+  width: var(--estack-icon-xs);
+  height: var(--estack-icon-xs);
+  overflow: visible;
+  fill: var(--estack-provider-current);
+}
+
+.window-rail-usage-track {
+  stroke: currentcolor;
+  opacity: 0.15;
+}
+
+.window-rail-usage-arc {
+  stroke: var(--estack-success);
+}
+
+.window-rail-usage-arc[data-usage-tone="warning"] {
+  stroke: var(--estack-warning);
+}
+
+.window-rail-usage-arc[data-usage-tone="critical"] {
+  stroke: var(--estack-danger);
+}
+
+/* The "+N" ring: an empty track with the number of rings that do not fit. */
+.window-rail-usage-more .window-rail-usage-count {
+  color: var(--estack-text-secondary);
+  font-size: var(--estack-text-sm);
+  font-weight: var(--estack-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The credits of a media service with no team quota: its logo with the number of credits under it. */
+.window-rail-credits {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.window-rail-credits-count {
+  color: var(--estack-text-secondary);
+  font-size: var(--estack-text-sm);
+  font-weight: var(--estack-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* The usage of a custom agent: its logo with no ring, at the size of a rail icon. The hover card
+ * shows the answer of the agent as it wrote it. */
+.window-rail-button .window-rail-agent-usage-logo {
+  width: var(--estack-icon-md);
+  height: var(--estack-icon-md);
+}
+
+.window-rail-agent-usage {
+  display: grid;
+  padding-inline: var(--estack-space-1);
+  gap: var(--estack-space-1);
+}
+
+.window-rail-agent-usage-text {
+  margin: 0;
+  color: var(--estack-text-secondary);
+  font-size: var(--estack-text-sm);
+  line-height: var(--estack-leading-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* A row of the More menu: the page, then its pin. */
+.window-rail-more-menu .window-rail-more-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--estack-control-md);
+  align-items: center;
+  border-radius: var(--ui-menu-item-radius);
+  transition: background-color var(--estack-duration-hover) var(--estack-ease-out);
+}
+
+/* The whole line highlights, for the page and for its pin. The items have no background of their own. */
+.ui-action-menu.window-rail-more-menu .window-rail-more-row:is(:hover, :has([data-highlighted])) {
+  background: var(--ui-menu-item-hover);
+}
+
+.ui-action-menu.window-rail-more-menu
+  .window-rail-more-row
+  :is([role="menuitem"], [role="menuitemcheckbox"]):is(:hover, :focus-visible, [data-highlighted]) {
+  background: transparent;
+}
+
+/* The pin shows on a pinned page, and on the row under the pointer or the keyboard. The shared
+ * .ui-action-menu item rule outranks a single class, so this rule names the role to center the pin. */
+.ui-action-menu.window-rail-more-menu .window-rail-more-pin[role="menuitemcheckbox"] {
+  justify-content: center;
+  padding: 0;
+  opacity: 0;
+}
+
+.ui-action-menu.window-rail-more-menu
+  .window-rail-more-row:is([data-pinned], :hover, :focus-within)
+  .window-rail-more-pin {
+  opacity: 1;
+}
+
+/* A touch screen has no hover, so each pin shows. */
+@media (hover: none) {
+  .ui-action-menu.window-rail-more-menu .window-rail-more-pin[role="menuitemcheckbox"] {
+    opacity: 1;
+  }
+}
+
+/* A pinned page has a pin in the primary text color, as a highlighted icon. Icons stay outlines. */
+.window-rail-more-menu .window-rail-more-row[data-pinned] .window-rail-more-pin > .agent-context-icon {
+  color: var(--estack-text-primary);
+}
+
+/* The page icon takes the primary text color with its row, also when the pin is highlighted. */
+.ui-action-menu.window-rail-more-menu
+  .window-rail-more-row:is(:hover, :has([data-highlighted]))
+  > [role="menuitem"]
+  > .agent-context-icon {
+  color: var(--estack-text-primary);
+}

@@ -1,0 +1,21 @@
+import type { PartialTranslation } from "../../../message";
+import type { messages as source } from "../../en/error/mcp";
+
+export const messages = {
+  "error.mcp.redirectByName": "הכתובת הזו אינה נגישה לפי שם.",
+  "error.mcp.redirectNotSignIn": "הכתובת הזו אינה חלק מהתחברות.",
+  "error.mcp.redirectRefused": "ההתחברות נדחתה. יש לחזור אל estack ולנסות שוב.",
+  "error.mcp.redirectNoSignIn": "אין התחברות שממתינה לזה. ייתכן שהיא הסתיימה.",
+  "error.mcp.redirectSignedIn": "estack מחובר. אפשר לסגור את החלון הזה.",
+  "error.mcp.signInFileUnreadable": "לא ניתן לקרוא את קובץ ההתחברות של MCP.",
+  "error.mcp.signInFileTooLarge": "קובץ ההתחברות של MCP גדול מדי.",
+  "error.mcp.unsupported": "שרתי MCP אינם נתמכים בשרת הזה.",
+  "error.mcp.signInOnHost": "התחברות לשרת MCP פועלת רק ב-estack במחשב המארח.",
+  "error.mcp.signInPageOnServer": "דף ההתחברות הזה נפתח רק בשרת. יש לבקש מבעלים או ממנהל של השרת להתחבר.",
+  "error.mcp.signInPageOnServerSwitch": "דף ההתחברות הזה נפתח רק בשרת. יש לעבור לשרת הזה, ואז לבחור שוב התחברות.",
+  "error.mcp.signInAppUnsupported": "השרת הזה אינו תומך באפליקציות התחברות. יש לעדכן את estack במארח.",
+  "error.mcp.redirectRelayed": "estack שלח את ההתחברות לשרת. אפשר לסגור את החלון הזה.",
+  "error.mcp.relayEnded": "ההתחברות הזו הסתיימה. יש להתחיל אותה מחדש.",
+  "error.mcp.relayNoState": "דף ההתחברות של השרת אינו מגן על כתובת החזרה שלו, ולכן estack אינו פותח אותו במחשב הזה.",
+  "error.mcp.relayAddressInvalid": "זו אינה הכתובת שבסוף ההתחברות הזו. יש להעתיק את הכתובת המלאה מהדפדפן.",
+} as const satisfies PartialTranslation<typeof source>;

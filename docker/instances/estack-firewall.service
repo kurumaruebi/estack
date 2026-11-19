@@ -1,0 +1,14 @@
+# Applies the firewall of the estack instances before Docker starts their containers.
+# `estack-instance setup` installs it. See docs/docker.md#several-instances-on-one-host.
+[Unit]
+Description=Firewall of the estack Docker instances
+After=ufw.service
+Before=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/opt/estack-docker/instances/estack-firewall
+
+[Install]
+WantedBy=multi-user.target docker.service

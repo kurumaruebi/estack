@@ -1,0 +1,116 @@
+#!/bin/sh
+set -eu
+umask 002
+cd "$(dirname "$0")/../.."
+export PATH="$HOME/.bun/bin:$PATH"
+
+usage() {
+  echo "使い方: estack/bin/deploy-vps [dev | stable <v0.x.y>]（引数なしは今の 1 つの一式に main を取り込む）" >&2
+  exit 2
+}
+
+if [ $# -eq 0 ]; then
+  channel=stable
+  ref=main
+else
+  channel=$1
+  ref=${2:-}
+  case "$channel" in
+  dev)
+    if [ -n "$ref" ] && [ "$ref" != main ]; then usage; fi
+    ref=main
+    ;;
+  stable)
+    printf '%s\n' "$ref" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || usage
+    ;;
+  *) usage ;;
+  esac
+fi
+config="${ESTACK_INSTANCE_DIR:-/etc/estack/instances}/$channel.env"
+if [ -r "$config" ]; then
+  set -a
+  . "$config"
+  set +a
+fi
+proxy="${ESTACK_GITHUB_READ_PROXY:-http://127.0.0.1:3190}/git"
+logs="$HOME/.cache/estack"
+mkdir -p "$logs"
+exec >>"$logs/deploy.log" 2>&1
+echo "== $(date -u +%FT%TZ) deploy $channel $ref"
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+  echo "The checkout has uncommitted changes. Not deploying."
+  exit 1
+fi
+
+wait_for_agents() {
+  for attempt in $(seq 1 80); do
+    busy=$(bun estack/scripts/agent-call.ts getRuntimeSnapshot 2>/dev/null | python3 -I -c 'import json, sys; print(len(json.load(sys.stdin).get("activeTurns", [])))' 2>/dev/null || echo 0)
+    if [ "$busy" = "0" ]; then break; fi
+    if [ "$attempt" = "80" ]; then echo "Agents are still working after 20 minutes. Restarting anyway."; break; fi
+    echo "Waiting: $busy agent turns are running."
+    sleep 15
+  done
+}
+
+back_up() {
+  data=${ESTACK_DATA_DIR:-}
+  if [ -z "$data" ] || [ ! -d "$data" ]; then
+    echo "ESTACK_DATA_DIR（${config}）が無いか、そのフォルダがありません。控えを取れないので取り込みません。"
+    return 1
+  fi
+  root="${ESTACK_BACKUP_DIR:-$HOME/estack-backups}"
+  place="$root/$(date -u +%Y%m%dT%H%M%SZ)"
+  mkdir -p "$place"
+  chmod 700 "$root" "$place"
+  tar -C "$(dirname "$data")" -czf "$place/data.tar.gz" "$(basename "$data")"
+  if [ -d apps/auth-api/.wrangler/state ]; then
+    tar -C apps/auth-api/.wrangler -czf "$place/wrangler-state.tar.gz" state
+  fi
+  owner="${ESTACK_OWNER_ENV:-$HOME/.config/estack/owner.env}"
+  if [ -f "$owner" ]; then cp -p "$owner" "$place/owner.env"; fi
+  echo "Backed up to $place."
+  ls -1d "$root"/*/ | sort -r | tail -n +4 | while read -r old; do rm -rf "$old"; done
+}
+
+before=$(git rev-parse HEAD)
+if [ "$ref" = main ]; then
+  git fetch -q "$proxy" main
+  git merge -q --ff-only FETCH_HEAD
+  after=$(git rev-parse HEAD)
+  if [ "$before" = "$after" ]; then
+    echo "Already at $after."
+    exit 0
+  fi
+  echo "Updated $before -> $after"
+  if ! git diff --quiet "$before" "$after" -- bun.lock package.json; then
+    bun install --frozen-lockfile
+  fi
+  wait_for_agents
+  estack/bin/estack-instance "$channel" stop
+  sleep 5
+else
+  git fetch -q "$proxy" "+refs/heads/main:refs/estack/main" "+refs/tags/$ref:refs/tags/$ref"
+  after=$(git rev-parse "refs/tags/$ref^{commit}")
+  if ! git merge-base --is-ancestor "$after" refs/estack/main; then
+    echo "$ref is not on main. Not deploying."
+    exit 1
+  fi
+  if [ "$before" = "$after" ]; then
+    echo "Already at $ref ($after)."
+    exit 0
+  fi
+  wait_for_agents
+  estack/bin/estack-instance "$channel" stop
+  if ! back_up; then
+    estack/bin/estack-instance "$channel" start
+    exit 1
+  fi
+  git -c advice.detachedHead=false checkout -q --detach "$after"
+  echo "Updated $before -> $after ($ref)"
+  if ! git diff --quiet "$before" "$after" -- bun.lock package.json; then
+    bun install --frozen-lockfile
+  fi
+fi
+estack/bin/estack-instance "$channel" start
+estack/bin/check-metro "$channel" || echo "Metro の確かめに失敗しました。"
+echo "Deployed $after."

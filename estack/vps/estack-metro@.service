@@ -1,0 +1,15 @@
+[Unit]
+Description=estack Metro for Expo Go (%i)
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+UMask=0002
+ExecStart=/bin/sh -c 'exec /usr/local/bin/bun x expo start --go --port "$ESTACK_METRO_PORT"'
+Restart=always
+RestartSec=10
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target
