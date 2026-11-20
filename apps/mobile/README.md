@@ -272,16 +272,20 @@ The app has two variants that install side by side:
 The development app has its own icon (`assets/icons/app-icon-dev.icon`, the dev logo color) and its own App Group,
 widget, share and notification extension IDs, so the two apps share nothing on the phone.
 
-`bun run iphone production` and `bun run iphone development` build a variant and install it on the iPhone that is
-connected to this Mac. They sign with the free Personal Team of Xcode (`ESTACK_IOS_SIGNING=personal`), which
-cannot sign push notifications, associated domains, Communication Notifications or extensions with an App Group,
-so that build leaves out the widgets, the notification service and the share extension. Apple ends a Personal
-Team app 7 days after it was signed: build it again to keep it.
+`bun run iphone production` and `bun run iphone development` build a variant and install it on the iPhone that
+this Mac reaches by cable or by network (Xcode, Devices, "Connect via network"). They sign with the team of
+`ESTACK_APPLE_TEAM_ID`. A paid Apple Developer Program team keeps every capability and extension, and its
+development profile lasts a year.
+
+With only the free Personal Team of Xcode, add `ESTACK_IOS_SIGNING=personal`. That team cannot sign push
+notifications, associated domains, Communication Notifications or extensions with an App Group, so that build
+leaves out the widgets, the notification service and the share extension, and Apple ends the app 7 days after
+it was signed.
 
 Put your own values in `~/.config/estack/iphone.env`, never in the repository:
 
 ```sh
-ESTACK_APPLE_TEAM_ID=<Personal Team ID from Xcode, Settings, Accounts>
+ESTACK_APPLE_TEAM_ID=<your team ID from Xcode, Settings, Accounts>
 ESTACK_IOS_BUNDLE_ID=<a bundle ID of your own, such as com.yourname.estack>
 ```
 

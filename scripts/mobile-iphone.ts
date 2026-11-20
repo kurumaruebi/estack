@@ -30,13 +30,17 @@ export function iphoneEnvironment(
   const bundleId = env.ESTACK_IOS_BUNDLE_ID?.trim();
   if (!teamId || !bundleId) {
     throw new Error(
-      "Set ESTACK_APPLE_TEAM_ID (the Personal Team in Xcode) and ESTACK_IOS_BUNDLE_ID (a bundle ID of your own) in ~/.config/estack/iphone.env.",
+      "Set ESTACK_APPLE_TEAM_ID (your team in Xcode) and ESTACK_IOS_BUNDLE_ID (a bundle ID of your own) in ~/.config/estack/iphone.env.",
     );
+  }
+  const signing = env.ESTACK_IOS_SIGNING?.trim() || "team";
+  if (signing !== "team" && signing !== "personal") {
+    throw new Error(`ESTACK_IOS_SIGNING is "${signing}". Use team (a paid Apple Developer Program team) or personal.`);
   }
   return {
     APP_VARIANT: variant,
     EXPO_PUBLIC_APP_ENV: variant,
-    ESTACK_IOS_SIGNING: "personal",
+    ...(signing === "personal" ? { ESTACK_IOS_SIGNING: "personal" } : {}),
     ESTACK_APPLE_TEAM_ID: teamId,
     ESTACK_IOS_BUNDLE_ID: bundleId,
   };
