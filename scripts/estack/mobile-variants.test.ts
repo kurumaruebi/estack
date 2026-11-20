@@ -47,6 +47,17 @@ describe("mobile app variants", () => {
     expect(JSON.stringify(config.plugins)).not.toContain(appJson.ios.bundleIdentifier);
   });
 
+  it("signs with a paid team and keeps every capability and extension", () => {
+    const config = resolve({
+      APP_VARIANT: "development",
+      ESTACK_APPLE_TEAM_ID: "TEAM000000",
+      ESTACK_IOS_BUNDLE_ID: "example.owner.estack",
+    });
+    expect(config.ios.appleTeamId).toBe("TEAM000000");
+    expect(config.ios.associatedDomains).toEqual(appJson.ios.associatedDomains);
+    expect(pluginNames(config)).toEqual(pluginNames(appJson));
+  });
+
   it("drops what a free Personal Team cannot sign", () => {
     const config = resolve({
       APP_VARIANT: "production",
@@ -87,8 +98,15 @@ describe("mobile-iphone", () => {
     const env = { ESTACK_APPLE_TEAM_ID: "TEAM000000", ESTACK_IOS_BUNDLE_ID: "example.owner.estack" };
     expect(iphoneEnvironment("development", env)).toMatchObject({
       APP_VARIANT: "development",
+      ESTACK_APPLE_TEAM_ID: "TEAM000000",
+    });
+    expect(iphoneEnvironment("development", env)).not.toHaveProperty("ESTACK_IOS_SIGNING");
+    expect(iphoneEnvironment("development", { ...env, ESTACK_IOS_SIGNING: "personal" })).toMatchObject({
       ESTACK_IOS_SIGNING: "personal",
     });
+    expect(() => iphoneEnvironment("development", { ...env, ESTACK_IOS_SIGNING: "free" })).toThrow(
+      /ESTACK_IOS_SIGNING/u,
+    );
     expect(() => iphoneEnvironment("development", {})).toThrow(/ESTACK_APPLE_TEAM_ID/u);
     expect(() => iphoneEnvironment("preview", env)).toThrow();
     expect(buildSteps("production", "PHONE")[1]).toEqual([

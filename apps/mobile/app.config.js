@@ -69,7 +69,12 @@ function withVariant(config) {
     ...config,
     name: variant.name,
     scheme: variant.scheme,
-    ios: { ...ios, bundleIdentifier: bundleId, ...(variant.icon ? { icon: variant.icon } : {}) },
+    ios: {
+      ...ios,
+      bundleIdentifier: bundleId,
+      ...(variant.icon ? { icon: variant.icon } : {}),
+      ...(process.env.ESTACK_APPLE_TEAM_ID?.trim() ? { appleTeamId: process.env.ESTACK_APPLE_TEAM_ID.trim() } : {}),
+    },
     android: { ...config.android, package: `${config.android?.package}${variant.suffix}` },
     plugins: renamed(config.plugins ?? [], baseId, bundleId),
   };
