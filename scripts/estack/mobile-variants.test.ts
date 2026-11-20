@@ -124,4 +124,18 @@ describe("mobile-iphone", () => {
       "--no-bundler",
     ]);
   });
+
+  it("passes the account service of the local settings to the build of either variant", () => {
+    const env = { ESTACK_APPLE_TEAM_ID: "TEAM000000", ESTACK_IOS_BUNDLE_ID: "example.owner.estack" };
+    expect(iphoneEnvironment("production", env)).not.toHaveProperty("EXPO_PUBLIC_ESTACK_API_URL");
+    expect(iphoneEnvironment("development", env)).not.toHaveProperty("EXPO_PUBLIC_ESTACK_API_URL");
+    for (const variant of ["production", "development"] as const) {
+      expect(
+        iphoneEnvironment(variant, { ...env, EXPO_PUBLIC_ESTACK_API_URL: " http://100.101.102.103:3100 " }),
+      ).toMatchObject({
+        APP_VARIANT: variant,
+        EXPO_PUBLIC_ESTACK_API_URL: "http://100.101.102.103:3100",
+      });
+    }
+  });
 });

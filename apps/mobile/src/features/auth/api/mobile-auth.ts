@@ -122,10 +122,9 @@ async function redeemMobileConnectSession(value: string): Promise<MobileSession>
   return session;
 }
 
-/** The account service for email sign-in. A development build can name a local one. */
 function mobileAccountApiUrl(): string {
   const override = process.env.EXPO_PUBLIC_ESTACK_API_URL;
-  return (override && __DEV__ && normalizeAccountApiUrl(override)) || ESTACK_CONTROL_PLANE_ORIGIN;
+  return (override && normalizeAccountApiUrl(override)) || ESTACK_CONTROL_PLANE_ORIGIN;
 }
 
 export interface MobileEmailChallenge {

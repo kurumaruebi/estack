@@ -287,10 +287,18 @@ Put your own values in `~/.config/estack/iphone.env`, never in the repository:
 ```sh
 ESTACK_APPLE_TEAM_ID=<your team ID from Xcode, Settings, Accounts>
 ESTACK_IOS_BUNDLE_ID=<a bundle ID of your own, such as com.yourname.estack>
+EXPO_PUBLIC_ESTACK_API_URL=<your account service, such as http://100.101.102.103:3100>
 ```
 
+`EXPO_PUBLIC_ESTACK_API_URL` is the account service that email sign-in uses. Set it when your phone
+cannot reach the public account API: a build of either variant embeds the value, so the released
+variant signs in against your service instead of `https://api.estack.invalid`. Leave it out when the
+phone uses the public service. The same variable in the shell or the unit of a Metro server serves
+the JavaScript of a development build, which a store build never reads.
+
 Open the development app on a Metro server with `estack-dev://expo-development-client/?url=<the Metro URL, URL-encoded>`,
-or type the Metro URL in the dev client.
+or type the Metro URL in the dev client. With no Metro server the app stays on the launcher of the
+development client; the released variant needs no Metro because its JavaScript is inside the app.
 
 ## iOS shortcuts
 
