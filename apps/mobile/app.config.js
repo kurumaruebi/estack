@@ -81,12 +81,39 @@ function withVariant(config) {
   return process.env.ESTACK_IOS_SIGNING?.trim() === "personal" ? withPersonalTeam(varied) : varied;
 }
 
+function withAccountServiceTransport(config) {
+  const value = process.env.EXPO_PUBLIC_ESTACK_API_URL?.trim();
+  if (!value || !URL.canParse(value)) return config;
+  const { protocol, hostname } = new URL(value);
+  if (protocol !== "http:" || !/^\d{1,3}(\.\d{1,3}){3}$/u.test(hostname)) return config;
+  const infoPlist = config.ios?.infoPlist ?? {};
+  const transport = infoPlist.NSAppTransportSecurity ?? {};
+  return {
+    ...config,
+    ios: {
+      ...config.ios,
+      infoPlist: {
+        ...infoPlist,
+        NSAppTransportSecurity: {
+          ...transport,
+          NSExceptionDomains: {
+            ...transport.NSExceptionDomains,
+            [hostname]: { NSExceptionAllowsInsecureHTTPLoads: true },
+          },
+        },
+      },
+    },
+  };
+}
+
 /** @param {{ config: import('expo/config').ExpoConfig }} context */
 module.exports = ({ config }) => {
   const firebaseFile = googleServicesFile();
   return withOwnerSettings(
-    withVariant(
-      firebaseFile ? { ...config, android: { ...config.android, googleServicesFile: firebaseFile } } : config,
+    withAccountServiceTransport(
+      withVariant(
+        firebaseFile ? { ...config, android: { ...config.android, googleServicesFile: firebaseFile } } : config,
+      ),
     ),
   );
 };

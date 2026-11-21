@@ -76,6 +76,20 @@ describe("mobile app variants", () => {
     ]);
   });
 
+  it("lets either variant reach an account service at a plain HTTP address, such as a tailnet one", () => {
+    for (const variant of ["production", "development"]) {
+      const config = resolve({ APP_VARIANT: variant, EXPO_PUBLIC_ESTACK_API_URL: "http://100.101.102.103:3100" });
+      expect(config.ios.infoPlist.NSAppTransportSecurity).toEqual({
+        ...appJson.ios.infoPlist.NSAppTransportSecurity,
+        NSExceptionDomains: { "100.101.102.103": { NSExceptionAllowsInsecureHTTPLoads: true } },
+      });
+    }
+    for (const url of ["", "https://100.101.102.103", "http://accounts.example.com", "not a url"]) {
+      const config = resolve({ APP_VARIANT: "production", EXPO_PUBLIC_ESTACK_API_URL: url });
+      expect(config.ios.infoPlist.NSAppTransportSecurity).toEqual(appJson.ios.infoPlist.NSAppTransportSecurity);
+    }
+  });
+
   it("refuses an unknown variant and a Personal Team build without a team", () => {
     expect(() => resolve({ APP_VARIANT: "preview" })).toThrow(/APP_VARIANT/u);
     expect(() => resolve({ APP_VARIANT: "", ESTACK_IOS_SIGNING: "personal", ESTACK_APPLE_TEAM_ID: "" })).toThrow(
