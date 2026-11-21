@@ -76,6 +76,20 @@ describe("mobile app variants", () => {
     ]);
   });
 
+  it("lets either variant reach an account service at a plain HTTP address, such as a tailnet one", () => {
+    for (const variant of ["production", "development"]) {
+      const config = resolve({ APP_VARIANT: variant, EXPO_PUBLIC_ESTACK_API_URL: "http://100.101.102.103:3100" });
+      expect(config.ios.infoPlist.NSAppTransportSecurity).toEqual({
+        ...appJson.ios.infoPlist.NSAppTransportSecurity,
+        NSExceptionDomains: { "100.101.102.103": { NSExceptionAllowsInsecureHTTPLoads: true } },
+      });
+    }
+    for (const url of ["", "https://100.101.102.103", "http://accounts.example.com", "not a url"]) {
+      const config = resolve({ APP_VARIANT: "production", EXPO_PUBLIC_ESTACK_API_URL: url });
+      expect(config.ios.infoPlist.NSAppTransportSecurity).toEqual(appJson.ios.infoPlist.NSAppTransportSecurity);
+    }
+  });
+
   it("refuses an unknown variant and a Personal Team build without a team", () => {
     expect(() => resolve({ APP_VARIANT: "preview" })).toThrow(/APP_VARIANT/u);
     expect(() => resolve({ APP_VARIANT: "", ESTACK_IOS_SIGNING: "personal", ESTACK_APPLE_TEAM_ID: "" })).toThrow(
@@ -123,5 +137,19 @@ describe("mobile-iphone", () => {
       "--device",
       "--no-bundler",
     ]);
+  });
+
+  it("passes the account service of the local settings to the build of either variant", () => {
+    const env = { ESTACK_APPLE_TEAM_ID: "TEAM000000", ESTACK_IOS_BUNDLE_ID: "example.owner.estack" };
+    expect(iphoneEnvironment("production", env)).not.toHaveProperty("EXPO_PUBLIC_ESTACK_API_URL");
+    expect(iphoneEnvironment("development", env)).not.toHaveProperty("EXPO_PUBLIC_ESTACK_API_URL");
+    for (const variant of ["production", "development"] as const) {
+      expect(
+        iphoneEnvironment(variant, { ...env, EXPO_PUBLIC_ESTACK_API_URL: " http://100.101.102.103:3100 " }),
+      ).toMatchObject({
+        APP_VARIANT: variant,
+        EXPO_PUBLIC_ESTACK_API_URL: "http://100.101.102.103:3100",
+      });
+    }
   });
 });

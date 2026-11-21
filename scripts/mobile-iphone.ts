@@ -37,10 +37,12 @@ export function iphoneEnvironment(
   if (signing !== "team" && signing !== "personal") {
     throw new Error(`ESTACK_IOS_SIGNING is "${signing}". Use team (a paid Apple Developer Program team) or personal.`);
   }
+  const apiUrl = env.EXPO_PUBLIC_ESTACK_API_URL?.trim();
   return {
     APP_VARIANT: variant,
     EXPO_PUBLIC_APP_ENV: variant,
     ...(signing === "personal" ? { ESTACK_IOS_SIGNING: "personal" } : {}),
+    ...(apiUrl ? { EXPO_PUBLIC_ESTACK_API_URL: apiUrl } : {}),
     ESTACK_APPLE_TEAM_ID: teamId,
     ESTACK_IOS_BUNDLE_ID: bundleId,
   };
